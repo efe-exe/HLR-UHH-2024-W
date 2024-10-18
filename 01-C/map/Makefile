@@ -11,4 +11,5 @@ heatmap.o: heatmap.c
 clean:
 	rm -f heatmap
 	rm -f *.o
+	rm -f *.exe
 	rm -f *~

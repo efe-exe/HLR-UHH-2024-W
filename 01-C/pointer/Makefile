@@ -11,4 +11,5 @@ pointer.o: pointer.c
 clean:
 	rm -f pointer
 	rm -f *.o
+	rm -f *.exe
 	rm -f *~

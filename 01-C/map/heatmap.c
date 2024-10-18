@@ -1,36 +1,38 @@
 ﻿#include <stdio.h>
 
 // Definieren Sie ein 3x3-Array Namens map, das Werte vom Typ double enthält
-static double map[3][3] = {0}; // Initialisierung aller Werte mit 0
 
+double map[3][3];
 
 // Die Funktion set_temperature soll an Position [x, y] den Wert dir in das Array map eintragen
 // Überprüfen Sie x und y, um mögliche Arrayüberläufe zu verhindern
 void set_temperature (int x, int y, double temperature)
 {
-	if (x >= 0 && x < 3 && y >= 0 && y < 3)
-	{
-		map[x][y] = temperature;
-	}
-	else
-	{
-		printf("Error: Arrayueberlauf bei x=%d, y=%d. t=%f wird nicht eingefügt\n", x, y, temperature); // %d für integer und %f für doubles
-	}
+    if (0 <= x && x < 3 && 0 <= y && y < 3) {
+        map[x][y] = temperature;
+    }
+}
+
+double get_temperature (int x, int y)
+{
+    if (0 <= x && x < 3 && 0 <= y && y < 3) {
+        return map[x][y];
+    }
+    return 0.0;
 }
 
 // Die Funktion show_map soll das Array in Form einer 3x3-Matrix ausgeben
 void show_map (void)
 {
-	for (int i = 2; i >= 0; i--) // Subtraktiv, weil Y-Ache nach oben positiver wird
-	{
-		printf(" ");
-		for (int j = 0; j < 3; j++) // Additiv, weil X-Ache nach rechts positiver wird
-		{
-			printf(" %6.2f ", map[j][i]); // 6 Stellen insg. und 2 Nachkommastellen
-		}
-		printf("\n");
-	}
-	printf("\n");
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            if (x != 0) {
+                printf("\t");
+            }
+            printf("%.2f", map[x][y]);
+        }
+        printf("\n");
+    }
 }
 
 // Die Funktion average_value soll an Position [x, y] den Durchschnitt der 8 umgebenen
@@ -39,22 +41,16 @@ void show_map (void)
 // Verwenden Sie hierfür auch die Funktion set_temperature.
 void set_average (int x, int y)
 {
-	double sum = 0;
-	int count = 0;
-	
-	for (int i = x - 1; i <= x + 1; i++)
-	{
-		for (int j = y - 1; j <= y + 1; j++)
-		{
-			if (i >= 0 && i < 3 && j >= 0 && j < 3)
-			{
-				sum += map[i][j];
-				count++;
-			}
-		}
-	}
-	
-	set_temperature(x, y, sum / count);
+    double sum = 0.0;
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            if (dx == 0.0 &&  dy == 0.0) {
+                continue;
+            }
+            sum += get_temperature(x + dx, y + dy);
+        }
+    }
+    set_temperature(x, y, sum / 8);
 }
 
 // In dieser Funktion darf nichts verändert werden!

@@ -1,0 +1,18 @@
+Frage 1: Mit which können Sie sich den Pfad einer Anwendung anzeigen lassen.
+         Warum funktioniert das nicht für das Kommando cd? (Tipp: man bash)
+
+Antwort 1: cd is a bash builtin, keine Anwendung und hat daher keine zugehörige Datei
+
+Frage 2: Was fällt Ihnen bezüglich der drei Größen auf?
+
+-rw------- 1 krupp hr-2425 256K Oct 16 01:40 archiv/zufall
+drwx------ 2 krupp hr-2425 3 Oct 16 01:40 archiv
+-rw------- 1 krupp hr-2425 260K Oct 16 01:41 archiv.tar
+-rw------- 1 krupp hr-2425 257K Oct 16 01:41 archiv.tar.gz
+Antwort 2:
+
+Frage 3: Ist es möglich, ein gepacktes Archiv (.tar.gz) mit einem Aufruf von
+         tar zu erzeugen? Wie hätte dieser Aufruf lauten müssen?
+
+Antwort 3: `tar -czf archiv.tar.gz archiv`
+
