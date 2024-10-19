@@ -9,6 +9,7 @@ Frage 2: Was fällt Ihnen bezüglich der drei Größen auf?
 drwx------ 2 krupp hr-2425 3 Oct 16 01:40 archiv
 -rw------- 1 krupp hr-2425 260K Oct 16 01:41 archiv.tar
 -rw------- 1 krupp hr-2425 257K Oct 16 01:41 archiv.tar.gz
+
 Antwort 2: archiv.tar.gz ist kleiner als archiv.tar, fällt aber nicht unter die 256kb, da zufällige Daten nicht komprimiert werden können
 
 Frage 3: Ist es möglich, ein gepacktes Archiv (.tar.gz) mit einem Aufruf von
