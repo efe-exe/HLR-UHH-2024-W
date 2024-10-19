@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-tar -cvzf KruppEnesPhillip.tar.gz $1
+tar -cvzf KruppEnesDrittner.tar.gz $1
