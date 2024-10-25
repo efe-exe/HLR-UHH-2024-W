@@ -5,36 +5,37 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int *mistakes1(void) {
   int buf[] = {1, 1, 2, 3, 4, 5};
-  return buf;
+  int *out = (int*) malloc(sizeof(buf));
+  memcpy(out, buf, sizeof(buf));
+  return out;
 }
 
 int *mistakes2(void) {
-  int *buf = malloc(sizeof(char) * 4);
-  buf[2] = 2;
+  int *buf = malloc(sizeof(char) * 8);
+  buf[1] = 2;
   return buf;
 }
 
 int *mistakes3(void) {
   /* In dieser Funktion darf kein Speicher direkt d.h. explizit allokiert werden. */
-  int mistakes2_ = 0;
-  int *buf = (int *)&mistakes2;
+  int *buf = mistakes2();
   buf[0] = 3;
   return buf;
 }
 
 int *mistakes4(void) {
   int *buf = malloc(sizeof(char) * 4);
-  buf[4] = 4;
-  free(buf);
+  buf[0] = 4;
   return buf;
 }
 
 int *mistakes5(void) {
   int *buf = malloc(4 * 5);
-  buf[44] = 5;
+  buf[4] = 5;
   return buf;
 }
 
@@ -50,7 +51,11 @@ int main(void) {
 
   /* mhh muss hier noch etwas gefreed werden? */
   /* Fügen sie hier die korrekten aufrufe von free() ein */
-  free(p[1]); /* welcher Pointer war das doch gleich?, TODO: Fixme... ;-) */
+  free(p[0]-1);
+  free(p[1]-1);
+  free(p[2]);
+  free(p[3]);
+  free(p[4] - 4);
 
   return 0;
 }
