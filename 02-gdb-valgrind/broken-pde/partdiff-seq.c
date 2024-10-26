@@ -153,9 +153,12 @@ void freeMatrices(void) {
     if (Matrix[1] != 0)
       free(Matrix[1]);
     free(Matrix);
+    Matrix = NULL;
   }
-  if (M != NULL)
+  if (M != NULL) {
     free(M);
+    M = NULL;
+  }
 }
 
 /* ************************************************************************ */

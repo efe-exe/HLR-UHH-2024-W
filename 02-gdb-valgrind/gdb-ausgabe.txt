@@ -1,0 +1,103 @@
+krupp@cluster:~/HLR-exercise/02-gdb-valgrind/simple$ gdb ./simple
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04.2) 9.2
+Copyright (C) 2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from ./simple...
+(gdb) b mistakes1
+Breakpoint 1 at 0x401160: file simple.c, line 10.
+(gdb) run
+Starting program: /home/krupp/HLR-exercise/02-gdb-valgrind/simple/simple
+
+Breakpoint 1, mistakes1 () at simple.c:10
+10        int buf[] = {1, 1, 2, 3, 4, 5};
+(gdb) p buf
+$1 = {0, 0, 0, 0, 0, 0}
+(gdb) p buf[2]
+$2 = 0
+(gdb) n
+11        return buf;
+(gdb) p buf
+$3 = {1, 1, 2, 3, 4, 5}
+(gdb) p buf[2]
+$4 = 2
+(gdb) ptype buf
+type = int [6]
+(gdb) p mistakes2
+$5 = {int *(void)} 0x401146 <mistakes2>
+(gdb) b mistakes2
+Breakpoint 2 at 0x401146: file simple.c, line 14.
+(gdb) run
+The program being debugged has been started already.
+Start it from the beginning? (y or n) n
+Program not restarted.
+(gdb) c
+Continuing.
+
+Breakpoint 2, mistakes2 () at simple.c:14
+14      int *mistakes2(void) {
+(gdb) ptype buf
+type = int *
+(gdb) c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+mistakes3 () at simple.c:24
+24        buf[0] = 3;
+(gdb) bt
+#0  mistakes3 () at simple.c:24
+#1  0x0000000000401219 in main () at simple.c:43
+(gdb) l
+19
+20      int *mistakes3(void) {
+21        /* In dieser Funktion darf kein Speicher direkt d.h. explizit allokiert werden. */
+22        int mistakes2_ = 0;
+23        int *buf = (int *)&mistakes2;
+24        buf[0] = 3;
+25        return buf;
+26      }
+27
+28      int *mistakes4(void) {
+(gdb) frame
+#0  mistakes3 () at simple.c:24
+24        buf[0] = 3;
+(gdb) info frame
+Stack level 0, frame at 0x7fffffff8b40:
+ rip = 0x401196 in mistakes3 (simple.c:24); saved rip = 0x401219
+ called by frame at 0x7fffffff8bb0
+ source language c.
+ Arglist at 0x7fffffff8b30, args:
+ Locals at 0x7fffffff8b30, Previous frame's sp is 0x7fffffff8b40
+ Saved registers:
+  rip at 0x7fffffff8b38
+(gdb) frame 1
+#1  0x0000000000401219 in main () at simple.c:43
+43        int *p[5] = {&mistakes1()[1], &mistakes2()[1], mistakes3(), mistakes4(), mistakes5()+4};
+(gdb) info frame
+Stack level 1, frame at 0x7fffffff8bb0:
+ rip = 0x401219 in main (simple.c:43); saved rip = 0x7ffff7df0083
+ caller of frame at 0x7fffffff8b40
+ source language c.
+ Arglist at 0x7fffffff8b38, args:
+ Locals at 0x7fffffff8b38, Previous frame's sp is 0x7fffffff8bb0
+ Saved registers:
+  rbx at 0x7fffffff8b78, rbp at 0x7fffffff8b80, r12 at 0x7fffffff8b88, r13 at 0x7fffffff8b90, r14 at 0x7fffffff8b98, r15 at 0x7fffffff8ba0, rip at 0x7fffffff8ba8
+(gdb) call mistakes4()
+$6 = (int *) 0x4052c0
+(gdb) q
+A debugging session is active.
+
+        Inferior 1 [process 1965505] will be killed.
+
+Quit anyway? (y or n) y

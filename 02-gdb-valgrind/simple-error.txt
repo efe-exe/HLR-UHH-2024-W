@@ -1,0 +1,40 @@
+Zeile 11:
+  Es wird ein pointer zu Speicher auf dem Stack zurückgegeben;
+  Das funktioniert nicht da der Pointer invalide ist sobald mistakes1 den Stackframe verlässt.
+
+  Stattdessen muss mit malloc speicher im heap allokiert werden und der pointer dann zurückgegeben werden.
+- return buf;
++ int *out = (int*) malloc(sizeof(buf));
++ memcpy(out, buf, sizeof(buf));
++ return out;
+  Um `memcpy` zu verwenden muss außerdem `<string.h>` inkluidert werden
+
+
+Zeile 15 & 16:
+  Es wird zu wenig speicher allokiert, und zusätzlich erwarten `main` den wert an addresses `buf[1]`, nicht `buf[2]`
+- int *buf = malloc(sizeof(char) * 4);
+- buf[2] = 2;
++ int *buf = malloc(sizeof(char) * 8);
++ buf[1] = 2;
+
+Zeile 22 & 23:
+  Mann kann nicht zu den Addressen von funktionen schreiben, und selbst wenn man kann ist es eine schlechte Idee
+  Stattdessen sollte `mistakes2` aufgerufen werden:
+- int mistakes2_ = 0;
+- int *buf = (int *)&mistakes2;
++ int *bug = mistakes2();
+
+Zeile 37:
+  Wir wollen zu buf[4] speicher, nicht buf[44]. 44 ist out-of-range und nicht was `main` erwartet.
+- buf[44] = 5;
++ buf[4] = 5;
+
+
+Zeile 53:
+  Die richtien addressen müssen berechnet und gefreed werden, passierend auf den rechnung die in Zeile 44 passieren:
+- free(p[1]);
++ free(p[0]-1);
++ free(p[1]-1);
++ free(p[2]);
++ free(p[3]);
++ free(p[4] - 4);

@@ -1,0 +1,54 @@
+askparams.c:198
+  argv[444] ist out-of-bounds, argv[4] sollte verwendet werden
+- scanf (argV[444], "%d", func);
++ scanf (argV[4], "%d", func);
+  Zusätzlicher, nicht gefixter Fehler: wenn `partdiff-seq` mit mehr parameter aufgerufen wird,
+  aber mit weniger als 6 gibt es einen segfault da nicht eguckt wird ob `argV[2]` - `argV[6]` valide sind.
+  Am besten würde man hierfür die statische und interaktive parameter übergabe kombinieren oder eine richtige
+  Fehlermeldung produzieren. (z.b. `partdiff-seq 1 1 100 1 1` führt zu einem Segfault)
+
+partdiff-seq.c:80
+  Hier wird nicht genug speicher allokiert. Wir wollen genug speicher für zwei quadrat matrixen mit
+  Seitenänge N+1 allokiern. Dementsprechend muss das `(N+1)*(N+1)*2` statt `(N+1)*(N-1)*2` sein:
+- M = malloc(sizeof(double) * (N + 1) * (N - 1) * 2); /* allocate memory */
++ M = malloc(sizeof(double) * (N + 1) * (N + 1) * 2); /* allocate memory */
+
+partdiff-seq.c:150
+  In der funktion `freeMatrices` muss vorsichtig darauf geachtet werden das die Pointer gefreed werden,
+  in der richtigen Reihenfolge.
+
+- free(Matrix);
+- if (Matrix[1] != 0)
+-   free(Matrix[1]);
+- if (Matrix[0] != 0)
+-   free(Matrix[0]);
++ if (Matrix != NULL) {
++   if (Matrix[0] != NULL)
++     free(Matrix[0]);
++   if (Matrix[1] != NULL)
++     free(Matrix[1]);
++   free(Matrix);
++   Matrix = NULL;
++ }
++ if (M != NULL) {
++   free(M);
++   M = NULL;
++ }
+  Zusätlich sollten pointer auf `NULL` gesetzt werden nachdem sie gefreed wurden und sollten mit NULL
+  statt 0 verglichen werden.
+
+partdiff-seq.c:205
+  Hier wurden die reihenfolge von indexen vertauscht: Das erste sollte `m2`, also die matrix auswahl sein, dann erst
+  die x und y koordinaten in der matrix
+- star = -Matrix[m2][i - 1][j] - Matrix[j - 1][m2][i] +
++ star = -Matrix[m2][i - 1][j] - Matrix[m2][j - 1][i] +
+
+
+partdiff-seq.c:278-280
+  Hier wurde start und end zeit verwechselt. Mann muss nartürlich zuerst die startzeit messen
+- comp_time = time(NULL);  /*  stop timer          */
+- calculate();             /*  solve the equation  */
+- start_time = time(NULL); /*  start timer         */
++ start_time = time(NULL); /*  start timer         */
++ calculate();             /*  solve the equation  */
++ comp_time = time(NULL);  /*  stop timer          */
