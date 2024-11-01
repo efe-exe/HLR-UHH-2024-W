@@ -1,0 +1,128 @@
+1 Batch queuing
+	1 Ressourcenverwaltung für parallele Jobs in einer Warteschlange. Dadurch werden Engpässe vermieden.
+	2 PBS Moab SLURM
+	3 SLURM
+	4 mit sbash kann man jobs in einer Warteschlange abschicken. Damit werden jobs ausgeführt, wenn das System es sich leisten kann.
+	5 mit squeue kann man jobid partition name user st sehen. Also die aktuellen jobs und die wartenden jobs.
+	6 sview hat eine grafische Oberfläche
+	7 mit scancel kann man den job abbrechen
+	8 ja, kann man
+	9 scontrol show jobid -dd <jobid>
+	10 Builtin scheduling - sortiert nach Priorität - leicht zu berechnen. Backfill scheduling - startet kleine Jobs mit niedriger Priorität wenn keine Verzögerung für höhere entsteht - bessere Auslasting
+	11 	nayci1@cluster:~$ sinfo
+		PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+		amd          up    6:00:00      3  down* amd[2-4]
+		magny        up    6:00:00      1  drain magny1
+		nehalem      up    6:00:00      1  down* nehalem5
+		west         up    6:00:00     10   idle west[1-10]
+		nayci1@cluster:~$ srun --nodelist=west7 --partition=west --exclusive --pty bash
+		nayci1@west7:~$ srun hostname
+		west7
+		nayci1@west7:~$
+	12 Sechs Stunden
+	13 mit sprio
+	14 amd magny nehalem und west, um eine bestimmte zu benutzen: srun --partition=west --nodelist=west7 --exclusive --pty bash
+2 Shell-Script
+nayci1@cluster:~$ nano timescript.sh
+nayci1@cluster:~$ chmod +x timescript.sh
+nayci1@cluster:~$ nano jobscript.sh
+nayci1@cluster:~$ nayci1@cluster:~$ nano timescript.sh
+nayci1@cluster:~$ nayci1@cluster:~$ chmod +x jobscript.sh
+nayci1@cluster:~$ sinfo
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+amd          up    6:00:00      3  down* amd[2-4]
+magny        up    6:00:00      1  drain magny1
+nehalem      up    6:00:00      1  down* nehalem5
+west         up    6:00:00     10   idle west[1-10]
+nayci1@cluster:~$ nano jobscript.sh
+nayci1@cluster:~$ nayci1@cluster:~$ sbatch jobscript.sh
+Submitted batch job 175863
+nayci1@cluster:~$ cat timescript.out
+west1 @ 2024-10-30T19:37:47,924046446+01:00
+west1 @ 2024-10-30T19:37:47,925524815+01:00
+west1 @ 2024-10-30T19:37:47,925514977+01:00
+west1 @ 2024-10-30T19:37:47,925676906+01:00
+west1 @ 2024-10-30T19:37:47,926077280+01:00
+west5 @ 2024-10-30T19:37:47,980743277+01:00
+west4 @ 2024-10-30T19:37:47,983865450+01:00
+west4 @ 2024-10-30T19:37:47,983993798+01:00
+west4 @ 2024-10-30T19:37:47,983993787+01:00
+west5 @ 2024-10-30T19:37:47,981638714+01:00
+west5 @ 2024-10-30T19:37:47,981638740+01:00
+west4 @ 2024-10-30T19:37:47,984895289+01:00
+west5 @ 2024-10-30T19:37:47,981890551+01:00
+west5 @ 2024-10-30T19:37:47,981938161+01:00
+west4 @ 2024-10-30T19:37:47,984990079+01:00
+west2 @ 2024-10-30T19:37:47,996520621+01:00
+west2 @ 2024-10-30T19:37:47,996780880+01:00
+west2 @ 2024-10-30T19:37:47,997083161+01:00
+west2 @ 2024-10-30T19:37:47,997047243+01:00
+west2 @ 2024-10-30T19:37:47,997188110+01:00
+west3 @ 2024-10-30T19:37:47,997611258+01:00
+west3 @ 2024-10-30T19:37:47,998127939+01:00
+west3 @ 2024-10-30T19:37:47,998150348+01:00
+west3 @ 2024-10-30T19:37:47,998643467+01:00
+west3 @ 2024-10-30T19:37:47,998499316+01:00
+nayci1@cluster:~$ cat jobscript.out
+Fertig
+nayci1@cluster:~$ cat timescript.out
+west1 @ 2024-10-30T19:37:47,924046446+01:00
+west1 @ 2024-10-30T19:37:47,925524815+01:00
+west1 @ 2024-10-30T19:37:47,925514977+01:00
+west1 @ 2024-10-30T19:37:47,925676906+01:00
+west1 @ 2024-10-30T19:37:47,926077280+01:00
+west5 @ 2024-10-30T19:37:47,980743277+01:00
+west4 @ 2024-10-30T19:37:47,983865450+01:00
+west4 @ 2024-10-30T19:37:47,983993798+01:00
+west4 @ 2024-10-30T19:37:47,983993787+01:00
+west5 @ 2024-10-30T19:37:47,981638714+01:00
+west5 @ 2024-10-30T19:37:47,981638740+01:00
+west4 @ 2024-10-30T19:37:47,984895289+01:00
+west5 @ 2024-10-30T19:37:47,981890551+01:00
+west5 @ 2024-10-30T19:37:47,981938161+01:00
+west4 @ 2024-10-30T19:37:47,984990079+01:00
+west2 @ 2024-10-30T19:37:47,996520621+01:00
+west2 @ 2024-10-30T19:37:47,996780880+01:00
+west2 @ 2024-10-30T19:37:47,997083161+01:00
+west2 @ 2024-10-30T19:37:47,997047243+01:00
+west2 @ 2024-10-30T19:37:47,997188110+01:00
+west3 @ 2024-10-30T19:37:47,997611258+01:00
+west3 @ 2024-10-30T19:37:47,998127939+01:00
+west3 @ 2024-10-30T19:37:47,998150348+01:00
+west3 @ 2024-10-30T19:37:47,998643467+01:00
+west3 @ 2024-10-30T19:37:47,998499316+01:00
+nayci1@cluster:~$ sbatch jobscript.sh
+Submitted batch job 175864
+nayci1@cluster:~$ cat timescript.out
+west1 @ 2024-10-30T19:38:41,641371935+01:00
+west1 @ 2024-10-30T19:38:41,642023116+01:00
+west1 @ 2024-10-30T19:38:41,642731233+01:00
+west1 @ 2024-10-30T19:38:41,644754856+01:00
+west1 @ 2024-10-30T19:38:41,644700594+01:00
+west4 @ 2024-10-30T19:38:41,675210474+01:00
+west5 @ 2024-10-30T19:38:41,673141080+01:00
+west5 @ 2024-10-30T19:38:41,674004598+01:00
+west3 @ 2024-10-30T19:38:41,680512734+01:00
+west5 @ 2024-10-30T19:38:41,678380447+01:00
+west3 @ 2024-10-30T19:38:41,681082179+01:00
+west3 @ 2024-10-30T19:38:41,682047765+01:00
+west3 @ 2024-10-30T19:38:41,682076244+01:00
+west3 @ 2024-10-30T19:38:41,682703133+01:00
+west5 @ 2024-10-30T19:38:41,682217526+01:00
+west4 @ 2024-10-30T19:38:41,685304001+01:00
+west2 @ 2024-10-30T19:38:41,688065147+01:00
+west5 @ 2024-10-30T19:38:41,682876304+01:00
+west2 @ 2024-10-30T19:38:41,688654537+01:00
+west4 @ 2024-10-30T19:38:41,686234278+01:00
+west4 @ 2024-10-30T19:38:41,687277614+01:00
+west2 @ 2024-10-30T19:38:41,689733040+01:00
+west4 @ 2024-10-30T19:38:41,688582779+01:00
+west2 @ 2024-10-30T19:38:41,698005739+01:00
+west2 @ 2024-10-30T19:38:41,698670677+01:00
+nayci1@cluster:~$ cat jobscript.out
+Fertig
+nayci1@cluster:~$
+	1 Die Reihenfolge ist inkonsistent und die Netzwerkkommunikation erfolgt mit einem zufälligen Delay
+	2 Fast, mit append kann man die Ausgabe direkt von timescript.sh in die Datei umlenken, aber dabei gehen manche Zeilen wegen Race conditions verloren. -srun mitigiert das.
+3
+	1 -Ofast optimiert aggressiv auf Geschwindigkeit, aber die Fließkommaberechnungen sind dementsprechend potenziell ungenau. Dabei wird die Standardkonformität gebrochen und somit wird das Debuggen erschwert  
