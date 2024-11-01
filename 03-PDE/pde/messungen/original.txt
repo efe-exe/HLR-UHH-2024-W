@@ -1,0 +1,21 @@
+$ time ./partdiff-seq 1 1 64 1 2 9000
+...
+real    1m28.759s
+user    1m28.440s
+sys     0m0.077s
+
+$ time ./partdiff-seq 1 1 64 2 2 4000
+real    1m35.995s
+user    1m35.869s
+sys     0m0.041s
+
+$ time ./partdiff-seq 1 2 64 1 2 9000
+real    2m13.401s
+user    2m13.111s
+sys     0m0.056s
+
+$ time ./partdiff-seq 1 2 64 2 2 4000
+
+real    1m52.244s
+user    1m51.981s
+sys     0m0.037s
