@@ -151,14 +151,12 @@ static void initMatrices(struct calculation_arguments *arguments,
 /* getResiduum: calculates residuum                                         */
 /* Input: x,y - actual column and row                                       */
 /* ************************************************************************ */
-double getResiduum(struct calculation_arguments *arguments,
-                   struct options *options, int x, int y, double star) {
-  if (options->inf_func == FUNC_F0) {
+double getResiduum(double h, int inf_func, int x, int y, double star) {
+  if (inf_func == FUNC_F0) {
     return ((-star) / 4.0);
   } else {
-    return ((TWO_PI_SQUARE * sin((double)(y)*PI * arguments->h) *
-                 sin((double)(x)*PI * arguments->h) * arguments->h *
-                 arguments->h -
+    return ((TWO_PI_SQUARE * sin((double)(y)*PI * h) *
+                 sin((double)(x)*PI * h) * h * h -
              star) /
             4.0);
   }
@@ -187,28 +185,32 @@ static void calculate(struct calculation_arguments *arguments,
     m1 = 0;
     m2 = 1;
   }
+  double **M1 = Matrix[m1];
+  double **M2 = Matrix[m2];
+  int term_iteration = options->term_iteration;
+  double stat_precision = 0;
+  int termination = options->termination;
+  double h = arguments->h;
+  int inf_func = options->inf_func;
 
-  while (options->term_iteration > 0) {
-    
+  while (term_iteration > 0) {
+    stat_precision = 0.0;
     /* over all rows */
     for (j = 1; j < N; j++) {
       /* over all columns */
       for (i = 1; i < N; i++) {
-				if(i == 1 && j == 1) {
-					results->stat_precision = 0;
-				}
-        star = -Matrix[m2][i - 1][j] - Matrix[m2][i][j - 1] -
-               Matrix[m2][i][j + 1] - Matrix[m2][i + 1][j] +
-               4.0 * Matrix[m2][i][j];
+        star = -M2[i - 1][j] - M2[i][j - 1] -
+               M2[i][j + 1] - M2[i + 1][j] +
+               4.0 * M2[i][j];
 
-        residuum = getResiduum(arguments, options, i, j, star);
+        residuum = getResiduum(h, inf_func, i, j, star);
         korrektur = residuum;
         residuum = (residuum < 0) ? -residuum : residuum;
-        results->stat_precision = (residuum < results->stat_precision)
-                                      ? results->stat_precision
+        stat_precision = (residuum < stat_precision)
+                                      ? stat_precision
                                       : residuum;
 
-        Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
+        M1[i][j] = M2[i][j] + korrektur;
       }
     }
 
@@ -218,17 +220,20 @@ static void calculate(struct calculation_arguments *arguments,
     i = m1;
     m1 = m2;
     m2 = i;
+    M1 = Matrix[m1];
+    M2 = Matrix[m2];
 
     /* check for stopping calculation, depending on termination method */
-    if (options->termination == TERM_PREC) {
-      if (results->stat_precision < options->term_precision) {
-        options->term_iteration = 0;
+    if (termination == TERM_PREC) {
+      if (stat_precision < options->term_precision) {
+        term_iteration = 0;
       }
     } else if (options->termination == TERM_ITER) {
-      options->term_iteration--;
+      term_iteration--;
     }
   }
-
+  options->term_iteration = term_iteration;
+  results->stat_precision = stat_precision;
   results->m = m2;
 }
 
