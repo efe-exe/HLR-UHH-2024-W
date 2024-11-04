@@ -156,6 +156,24 @@ double getResiduum(struct calculation_arguments *arguments,
 /* ************************************************************************ */
 /* calculate: solves the equation                                           */
 /* ************************************************************************ */
+/*
+Caching von Matrizen: Der Code verwendet nun Zwischenspeicher (m1cache und m2cache), um die aktuellen Zeilen der Matrizen in die Berechnung zu laden, 
+anstatt wiederholt auf mehrdimensionale Arrays zuzugreifen. Der Zugriff auf Arrays in C kann bei mehrdimensionalen Matrizen ziemlich teuer sein, 
+da jede Dimension eine zusätzliche Speicheradresse bedeutet. Das Zwischenspeichern der Zeilen sorgt dafür, dass die benötigten Daten effizienter aus 
+dem Speicher gelesen werden, was den Code schneller macht.
+
+Direkte Berechnung des Residuums: Statt die getResiduum-Funktion aufzurufen, die weitere Funktionsaufrufe und damit Rechenzeit kostet, wurde die 
+Berechnung direkt in den Code integriert. Die direkte Berechnung, insbesondere die Änderung der Residuumsberechnung für die Funktion FUNC_F0, 
+spart zusätzliche Zeit.
+
+Effizientere Speicherverwaltung: Der Code wurde so optimiert, dass Speicherbelegungen und -freigaben effizienter ausgeführt werden. 
+Durch Änderungen in der allocateMatrices-Funktion wird der gesamte Speicherblock in einem Schritt zugewiesen, wodurch die Speicherverwaltung 
+vereinfacht und schneller gemacht wird.
+
+Schleifenoptimierung: Einige Berechnungen wie maxresiduum und korrektur wurden innerhalb der Schleifen optimiert, um die Schleifenanzahl 
+und damit die Durchläufe zu reduzieren. Indem weniger Schleifen durchlaufen werden, kann der Algorithmus schneller die benötigte Präzision 
+erreichen oder die Iterationen zählen.
+*/
 static void calculate(struct calculation_arguments *arguments,
                       struct calculation_results *results,
                       struct options *options) {
