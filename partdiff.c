@@ -177,21 +177,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 }
 
 /* ************************************************************************ */
-/*                                                                          */
-/* @brief Solves the equation using the specified method and options.       */
-/*                                                                          */
-/* This function performs the calculation to solve                          */
-/* the equation based on the provided arguments,                            */
-/* results, and options. It supports different methods                      */
-/* (e.g., Jacobi) and termination criteria                                  */
-/* (e.g., precision, iteration count).                                      */                  
-/*                                                                          */                               
-/* @param arguments Pointer to the structure                                */
-/*      containing calculation arguments.                                   */
-/* @param results Pointer to the structure                                  */
-/*      to store calculation results.                                       */
-/* @param options Pointer to the structure                                  */
-/*      containing options for the calculation.                             */
+/* calculate: solves the equation                                           */
 /* ************************************************************************ */
 static
 void
@@ -223,7 +209,6 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 		m2 = 0;
 	}
 
-    /* calculate constants if FUNC_FPISIN is used */
 	if (options->inf_func == FUNC_FPISIN)
 	{
 		pih = PI * h;
@@ -237,30 +222,26 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 
 		maxResiduum = 0;
 
-		/* iterate over all rows */
+		/* over all rows */
 		for (i = 1; i < N; i++)
 		{
 			double fpisin_i = 0.0;
 
-            /* calculate fpisin_i if FUNC_FPISIN is used */
 			if (options->inf_func == FUNC_FPISIN)
 			{
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
-			/* iterate over all columns */
+			/* over all columns */
 			for (j = 1; j < N; j++)
 			{
-                /* calculate the new value for the matrix element */
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
-                /* add fpisin_i term if FUNC_FPISIN is used */
 				if (options->inf_func == FUNC_FPISIN)
 				{
 					star += fpisin_i * sin(pih * (double)j);
 				}
 
-                /* calculate residuum if TERM_PREC is used */
 				if (options->termination == TERM_PREC || term_iteration == 1)
 				{
 					residuum = Matrix_In[i][j] - star;
@@ -283,7 +264,6 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 		/* check for stopping calculation depending on termination method */
 		if (options->termination == TERM_PREC)
 		{
-            /* check if precision is reached */
 			if (maxResiduum < options->term_precision)
 			{
 				term_iteration = 0;
@@ -294,47 +274,9 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 			term_iteration--;
 		}
 	}
+
 	results->m = m2;
 }
-
-/* ************************************************************************ */
-/* @brief Calculate a row of the matrix using                               */
-/*  the specified method and options.                                       */
-/*                                                                          */
-/* This function performs the calculation of a row in the matrix based      */
-/* on the provided arguments, results, and options. It supports parallel    */
-/* execution using OpenMP if the Jacobi method is selected.                 */
-/*                                                                          */
-/* @param arguments Pointer to the structure containing                     */
-/*  calculation arguments.                                                  */
-/* @param results Pointer to the structure containing                       */
-/*  calculation results.                                                    */
-/* @param options Pointer to the structure containing                       */
-/*  options for the calculation.                                            */
-/*                                                                          */
-/* The function uses the following parameters from the structures:          */
-/* - arguments->N: The size of the matrix.                                  */
-/* - arguments->h: The step size.                                           */
-/* - arguments->Matrix: The matrix to be calculated.                        */
-/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
-/* - options->inf_func: The function to be used for initialization.         */
-/* - options->term_iteration: The number of iterations for the calculation. */
-/* - options->termination: The termination condition (precision/iteration). */
-/* - options->term_precision: The precision for termination.                */
-/* - options->number: The number of threads for parallel execution.         */
-/* - results->stat_iteration: The number of iterations performed.           */
-/* - results->stat_precision: The precision achieved.                       */
-/* - results->m: The index of the matrix used for the final result.         */
-/*                                                                          */
-/* The function performs the following steps:                               */
-/* 1. Initialize local variables and parameters based on the options.       */
-/* 2. Set up parallel execution if the Jacobi method's selected.            */
-/* 3. Perform the calculation for each row and column of the matrix.        */
-/* 4. Update the maximum residuum value for convergence checking.           */
-/* 5. Exchange the old and new matrices for the next iteration.             */
-/* 6. Check for stopping conditions based on the termination method.        */
-/* 7. Update the results structure with iteration count and precision.      */
-/* ************************************************************************ */
 static
 void
 calculate_row (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -378,119 +320,81 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
     private(i, j, star, residuum, maxLocalResiduum) \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
 {
-    while (term_iteration > 0)
-    {
+	while (term_iteration > 0)
+	{
         #pragma omp master
         {
-            Matrix_Out  = arguments->Matrix[m1];
-            Matrix_In   = arguments->Matrix[m2];
-            maxResiduum = 0;
-        }
-        maxLocalResiduum = 0;
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
         #pragma omp barrier
 
-        /* over all rows */
+		/* over all rows */
         #pragma omp for
-        for (i = 1; i < N; i++)
-        {
-            double fpisin_i = 0.0;
+		for (i = 1; i < N; i++)
+		{
+			double fpisin_i = 0.0;
 
-            if (options->inf_func == FUNC_FPISIN)
-            {
-                fpisin_i = fpisin * sin(pih * (double)i);
-            }
+			if (options->inf_func == FUNC_FPISIN)
+			{
+				fpisin_i = fpisin * sin(pih * (double)i);
+			}
 
-            /* over all columns */
-            for (j = 1; j < N; j++)
-            {
-                star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+			/* over all columns */
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
-                if (options->inf_func == FUNC_FPISIN)
-                {
-                    star += fpisin_i * sin(pih * (double)j);
-                }
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin_i * sin(pih * (double)j);
+				}
 
-                if (options->termination == TERM_PREC || term_iteration == 1)
-                {
-                    residuum = Matrix_In[i][j] - star;
-                    residuum = (residuum < 0) ? -residuum : residuum;
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
                     if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
-                }
+				}
 
-                Matrix_Out[i][j] = star;
-            }
-        }
-        #pragma omp atomic compare
-        if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
         #pragma omp barrier
-        #pragma omp master
-        {
+		#pragma omp master
+		{
 
-            results->stat_iteration++;
-            results->stat_precision = maxResiduum;
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
 
-            /* exchange m1 and m2 */
-            i = m1;
-            m1 = m2;
-            m2 = i;
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
 
-            /* check for stopping calculation depending on termination method */
-            if (options->termination == TERM_PREC)
-            {
-                if (maxResiduum < options->term_precision)
-                {
-                    term_iteration = 0;
-                }
-            }
-            else if (options->termination == TERM_ITER)
-            {
-                term_iteration--;
-            }
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
         }
         #pragma omp barrier
-    }
+	}
 } /* End #pragma parallel */
-    results->m = m2;
-}
 
-/* ************************************************************************ */
-/* @brief Calculate a column of the matrix using                            */
-/*  the specified method and options.                                       */
-/*                                                                          */
-/* This function performs the calculation of a column in the matrix based   */
-/* on the provided arguments, results, and options. It supports parallel    */
-/* execution using OpenMP if the Jacobi method is selected.                 */
-/*                                                                          */
-/* @param arguments Pointer to the structure containing                     */
-/*  calculation arguments.                                                  */
-/* @param results Pointer to the structure containing                       */
-/*  calculation results.                                                    */
-/* @param options Pointer to the structure containing                       */
-/*  options for the calculation.                                            */
-/*                                                                          */
-/* The function uses the following parameters from the structures:          */
-/* - arguments->N: The size of the matrix.                                  */
-/* - arguments->h: The step size.                                           */
-/* - arguments->Matrix: The matrix to be calculated.                        */
-/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
-/* - options->inf_func: The function to be used for initialization.         */
-/* - options->term_iteration: The number of iterations for the calculation. */
-/* - options->termination: The termination condition (precision/iteration). */
-/* - options->term_precision: The precision for termination.                */
-/* - options->number: The number of threads for parallel execution.         */
-/* - results->stat_iteration: The number of iterations performed.           */
-/* - results->stat_precision: The precision achieved.                       */
-/* - results->m: The index of the matrix used for the final result.         */
-/*                                                                          */
-/* The function performs the following steps:                               */
-/* 1. Initialize local variables and parameters based on the options.       */
-/* 2. Set up parallel execution if the Jacobi method's selected.            */
-/* 3. Perform the calculation for each row and column of the matrix.        */
-/* 4. Update the maximum residuum value for convergence checking.           */
-/* 5. Exchange the old and new matrices for the next iteration.             */
-/* 6. Check for stopping conditions based on the termination method.        */
-/* 7. Update the results structure with iteration count and precision.      */
-/* ************************************************************************ */
+	results->m = m2;
+}
 static
 void
 calculate_column (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -535,122 +439,84 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
     private(i, j, star, residuum, maxLocalResiduum) \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum, fpisin_i)
 {
-    while (term_iteration > 0)
-    {
+	while (term_iteration > 0)
+	{
         #pragma omp master
         {
-            Matrix_Out  = arguments->Matrix[m1];
-            Matrix_In   = arguments->Matrix[m2];
-            maxResiduum = 0;
-        }
-        maxLocalResiduum = 0;
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
         #pragma omp barrier
 
-        /* over all rows */
-        for (i = 1; i < N; i++)
-        {
+		/* over all rows */
+		for (i = 1; i < N; i++)
+		{
             #pragma omp single
             {
-                fpisin_i = 0.0;
+				fpisin_i = 0.0;
 
-                if (options->inf_func == FUNC_FPISIN)
-                {
-                    fpisin_i = fpisin * sin(pih * (double)i);
-                }
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					fpisin_i = fpisin * sin(pih * (double)i);
+				}
             }
 
-            /* over all columns */
+			/* over all columns */
             #pragma omp for
-            for (j = 1; j < N; j++)
-            {
-                star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
-                if (options->inf_func == FUNC_FPISIN)
-                {
-                    star += fpisin_i * sin(pih * (double)j);
-                }
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin_i * sin(pih * (double)j);
+				}
 
-                if (options->termination == TERM_PREC || term_iteration == 1)
-                {
-                    residuum = Matrix_In[i][j] - star;
-                    residuum = (residuum < 0) ? -residuum : residuum;
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
                     if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
-                }
+				}
 
-                Matrix_Out[i][j] = star;
-            }
-        }
-        #pragma omp atomic compare
-        if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
         #pragma omp barrier
-        #pragma omp master
-        {
+		#pragma omp master
+		{
 
-            results->stat_iteration++;
-            results->stat_precision = maxResiduum;
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
 
-            /* exchange m1 and m2 */
-            i = m1;
-            m1 = m2;
-            m2 = i;
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
 
-            /* check for stopping calculation depending on termination method */
-            if (options->termination == TERM_PREC)
-            {
-                if (maxResiduum < options->term_precision)
-                {
-                    term_iteration = 0;
-                }
-            }
-            else if (options->termination == TERM_ITER)
-            {
-                term_iteration--;
-            }
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
         }
         #pragma omp barrier
-    }
+	}
 } /* End #pragma parallel */
+
 	results->m = m2;
 }
-
-/* ************************************************************************ */
-/* @brief Calculate an element of the matrix using                          */
-/*  the specified method and options.                                       */
-/*                                                                          */
-/* This function performs the calculation of an element in the matrix based */
-/* on the provided arguments, results, and options. It supports parallel    */
-/* execution using OpenMP if the Jacobi method is selected.                 */
-/*                                                                          */
-/* @param arguments Pointer to the structure containing                     */
-/*  calculation arguments.                                                  */
-/* @param results Pointer to the structure containing                       */
-/*  calculation results.                                                    */
-/* @param options Pointer to the structure containing                       */
-/*  options for the calculation.                                            */
-/*                                                                          */
-/* The function uses the following parameters from the structures:          */
-/* - arguments->N: The size of the matrix.                                  */
-/* - arguments->h: The step size.                                           */
-/* - arguments->Matrix: The matrix to be calculated.                        */
-/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
-/* - options->inf_func: The function to be used for initialization.         */
-/* - options->term_iteration: The number of iterations for the calculation. */
-/* - options->termination: The termination condition (precision/iteration). */
-/* - options->term_precision: The precision for termination.                */
-/* - options->number: The number of threads for parallel execution.         */
-/* - results->stat_iteration: The number of iterations performed.           */
-/* - results->stat_precision: The precision achieved.                       */
-/* - results->m: The index of the matrix used for the final result.         */
-/*                                                                          */
-/* The function performs the following steps:                               */
-/* 1. Initialize local variables and parameters based on the options.       */
-/* 2. Set up parallel execution if the Jacobi method's selected.            */
-/* 3. Perform the calculation for each element of the matrix.               */
-/* 4. Update the maximum residuum value for convergence checking.           */
-/* 5. Exchange the old and new matrices for the next iteration.             */
-/* 6. Check for stopping conditions based on the termination method.        */
-/* 7. Update the results structure with iteration count and precision.      */
-/* ************************************************************************ */
 static
 void
 calculate_element (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -694,71 +560,72 @@ calculate_element (struct calculation_arguments const* arguments, struct calcula
     private(i, j, star, residuum, maxLocalResiduum) \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
 {
-    while (term_iteration > 0)
-    {
+	while (term_iteration > 0)
+	{
         #pragma omp master
         {
-            Matrix_Out  = arguments->Matrix[m1];
-            Matrix_In   = arguments->Matrix[m2];
-            maxResiduum = 0;
-        }
-        maxLocalResiduum = 0;
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
         #pragma omp barrier
 
-        /* over all rows */
+		/* over all rows */
         #pragma omp for collapse(2)
-        for (i = 1; i < N; i++)
-        {
-            /* over all columns */
-            for (j = 1; j < N; j++)
-            {
-                star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+		for (i = 1; i < N; i++)
+		{
+			/* over all columns */
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
-                if (options->inf_func == FUNC_FPISIN)
-                {
-                    star += fpisin * sin(pih * (double)i) * sin(pih * (double)j);
-                }
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin * sin(pih * (double)i) * sin(pih * (double)j);
+				}
 
-                if (options->termination == TERM_PREC || term_iteration == 1)
-                {
-                    residuum = Matrix_In[i][j] - star;
-                    residuum = (residuum < 0) ? -residuum : residuum;
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
                     if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
-                }
+				}
 
-                Matrix_Out[i][j] = star;
-            }
-        }
-        #pragma omp atomic compare
-        if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
         #pragma omp barrier
-        #pragma omp master
-        {
+		#pragma omp master
+		{
 
-            results->stat_iteration++;
-            results->stat_precision = maxResiduum;
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
 
-            /* exchange m1 and m2 */
-            i = m1;
-            m1 = m2;
-            m2 = i;
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
 
-            /* check for stopping calculation depending on termination method */
-            if (options->termination == TERM_PREC)
-            {
-                if (maxResiduum < options->term_precision)
-                {
-                    term_iteration = 0;
-                }
-            }
-            else if (options->termination == TERM_ITER)
-            {
-                term_iteration--;
-            }
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
         }
         #pragma omp barrier
-    }
+	}
 } /* End #pragma parallel */
+
 	results->m = m2;
 }
 
