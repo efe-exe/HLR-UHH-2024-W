@@ -181,7 +181,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 /* ************************************************************************ */
 static
 void
-calculate (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
+calculate_seq (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
 {
 	int i, j;           /* local variables for loops */
 	int m1, m2;         /* used as indices for old and new matrices */
@@ -274,6 +274,357 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 			term_iteration--;
 		}
 	}
+
+	results->m = m2;
+}
+static
+void
+calculate_row (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
+{
+	int i, j;           /* local variables for loops */
+	int m1, m2;         /* used as indices for old and new matrices */
+	double star;        /* four times center value minus 4 neigh.b values */
+	double residuum;    /* residuum of current iteration */
+	double maxResiduum; /* maximum residuum value of a slave in iteration */
+	double maxLocalResiduum; /* maximum residuum value of a slave in iteration in a thread */
+
+	int const N = arguments->N;
+	double const h = arguments->h;
+
+	double pih = 0.0;
+	double fpisin = 0.0;
+
+	double** Matrix_Out;
+	double** Matrix_In;
+
+	int term_iteration = options->term_iteration;
+
+	/* initialize m1 and m2 depending on algorithm */
+	if (options->method == METH_JACOBI)
+	{
+		m1 = 0;
+		m2 = 1;
+	}
+	else
+	{
+		m1 = 0;
+		m2 = 0;
+	}
+
+	if (options->inf_func == FUNC_FPISIN)
+	{
+		pih = PI * h;
+		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+	}
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
+    private(i, j, star, residuum, maxLocalResiduum) \
+    shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
+{
+	while (term_iteration > 0)
+	{
+        #pragma omp master
+        {
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
+        #pragma omp barrier
+
+		/* over all rows */
+        #pragma omp for
+		for (i = 1; i < N; i++)
+		{
+			double fpisin_i = 0.0;
+
+			if (options->inf_func == FUNC_FPISIN)
+			{
+				fpisin_i = fpisin * sin(pih * (double)i);
+			}
+
+			/* over all columns */
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin_i * sin(pih * (double)j);
+				}
+
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
+                    if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
+				}
+
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+        #pragma omp barrier
+		#pragma omp master
+		{
+
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
+
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
+
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
+        }
+        #pragma omp barrier
+	}
+} /* End #pragma parallel */
+
+	results->m = m2;
+}
+static
+void
+calculate_column (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
+{
+	int i, j;           /* local variables for loops */
+	int m1, m2;         /* used as indices for old and new matrices */
+	double star;        /* four times center value minus 4 neigh.b values */
+	double residuum;    /* residuum of current iteration */
+	double maxResiduum; /* maximum residuum value of a slave in iteration */
+	double maxLocalResiduum; /* maximum residuum value of a slave in iteration in a thread */
+
+	int const N = arguments->N;
+	double const h = arguments->h;
+
+	double pih = 0.0;
+	double fpisin = 0.0;
+	double fpisin_i = 0.0;
+
+	double** Matrix_Out;
+	double** Matrix_In;
+
+	int term_iteration = options->term_iteration;
+
+	/* initialize m1 and m2 depending on algorithm */
+	if (options->method == METH_JACOBI)
+	{
+		m1 = 0;
+		m2 = 1;
+	}
+	else
+	{
+		m1 = 0;
+		m2 = 0;
+	}
+
+	if (options->inf_func == FUNC_FPISIN)
+	{
+		pih = PI * h;
+		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+	}
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
+    private(i, j, star, residuum, maxLocalResiduum) \
+    shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum, fpisin_i)
+{
+	while (term_iteration > 0)
+	{
+        #pragma omp master
+        {
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
+        #pragma omp barrier
+
+		/* over all rows */
+		for (i = 1; i < N; i++)
+		{
+            #pragma omp single
+            {
+				fpisin_i = 0.0;
+
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					fpisin_i = fpisin * sin(pih * (double)i);
+				}
+            }
+
+			/* over all columns */
+            #pragma omp for
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin_i * sin(pih * (double)j);
+				}
+
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
+                    if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
+				}
+
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+        #pragma omp barrier
+		#pragma omp master
+		{
+
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
+
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
+
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
+        }
+        #pragma omp barrier
+	}
+} /* End #pragma parallel */
+
+	results->m = m2;
+}
+static
+void
+calculate_element (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
+{
+	int i, j;           /* local variables for loops */
+	int m1, m2;         /* used as indices for old and new matrices */
+	double star;        /* four times center value minus 4 neigh.b values */
+	double residuum;    /* residuum of current iteration */
+	double maxResiduum; /* maximum residuum value of a slave in iteration */
+	double maxLocalResiduum; /* maximum residuum value of a slave in iteration in a thread */
+
+	int const N = arguments->N;
+	double const h = arguments->h;
+
+	double pih = 0.0;
+	double fpisin = 0.0;
+
+	double** Matrix_Out;
+	double** Matrix_In;
+
+	int term_iteration = options->term_iteration;
+
+	/* initialize m1 and m2 depending on algorithm */
+	if (options->method == METH_JACOBI)
+	{
+		m1 = 0;
+		m2 = 1;
+	}
+	else
+	{
+		m1 = 0;
+		m2 = 0;
+	}
+
+	if (options->inf_func == FUNC_FPISIN)
+	{
+		pih = PI * h;
+		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+	}
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
+    private(i, j, star, residuum, maxLocalResiduum) \
+    shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
+{
+	while (term_iteration > 0)
+	{
+        #pragma omp master
+        {
+		 	Matrix_Out  = arguments->Matrix[m1];
+			Matrix_In   = arguments->Matrix[m2];
+		    maxResiduum = 0;
+		}
+		maxLocalResiduum = 0;
+        #pragma omp barrier
+
+		/* over all rows */
+        #pragma omp for collapse(2)
+		for (i = 1; i < N; i++)
+		{
+			/* over all columns */
+			for (j = 1; j < N; j++)
+			{
+				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+
+				if (options->inf_func == FUNC_FPISIN)
+				{
+					star += fpisin * sin(pih * (double)i) * sin(pih * (double)j);
+				}
+
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
+                    if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
+				}
+
+				Matrix_Out[i][j] = star;
+			}
+		}
+		#pragma omp atomic compare
+		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
+        #pragma omp barrier
+		#pragma omp master
+		{
+
+			results->stat_iteration++;
+			results->stat_precision = maxResiduum;
+
+			/* exchange m1 and m2 */
+			i = m1;
+			m1 = m2;
+			m2 = i;
+
+			/* check for stopping calculation depending on termination method */
+			if (options->termination == TERM_PREC)
+			{
+				if (maxResiduum < options->term_precision)
+				{
+					term_iteration = 0;
+				}
+			}
+			else if (options->termination == TERM_ITER)
+			{
+				term_iteration--;
+			}
+        }
+        #pragma omp barrier
+	}
+} /* End #pragma parallel */
 
 	results->m = m2;
 }
@@ -385,7 +736,15 @@ main (int argc, char** argv)
 	initMatrices(&arguments, &options);
 
 	gettimeofday(&start_time, NULL);
-	calculate(&arguments, &results, &options);
+#ifdef SPALTE
+	calculate_column(&arguments, &results, &options);
+#elif defined(ZEILE)
+	calculate_row(&arguments, &results, &options);
+#elif defined(ELEMENT)
+	calculate_element(&arguments, &results, &options);
+#else
+	calculate_seq(&arguments, &results, &options);
+#endif
 	gettimeofday(&comp_time, NULL);
 
 	displayStatistics(&arguments, &results, &options);
