@@ -1,102 +1,105 @@
-Aufgabe 1 Batch Queuing
-
-1. Was bedeutet der Begriff Batch Queuing im HPC-Bereich, welches Problem wird
+1 Batch queuing
+Was bedeutet der Begriff Batch Queuing im HPC-Bereich, welches Problem wird
 damit gelöst?
-A: Batch Queuing heißt das die verschiedenen Benutzer Aufgabe ("Jobs" oder "Batches") in
-   eine Warteschlange einfügen ("Queue"). Der Job scheduler führt diese Jobs dann aus, wenn
-   die Kapazität dafür vorhanden ist. Die Jobs können evtl. viele Rechnerkonten verlangen.
-   Das Problem das gelöst wird ist das es ja nicht immer möglich ist alle jobs sofort zu
-   starten, da ja z.b. man 25 Knoten braucht aber nur 20 zu verfügung stehen. Außderdem
-   wird Leerlauf minimiert indem Jobs parralel auf underschiedlichen Konten ausgeführt werden.
-2. Nennen Sie drei Beispiele für HPC-Batch-Queuing-Systeme.
-   SLURM
-   LSF
-   Torque
-3. Welches Batch-Queuing-System wird auf dem WR-Cluster verwendet?
-   SLURM
-4. Machen Sie sich mit der Manpage von sbatch vertraut. Beschreiben Sie die Funk-
+
+Es handelt sich um eine Warteschlange für Rechenaufträge, bzw. Jobs, die auf einem Cluster ausgeführt werden. Der Begriff kommt von den alten Lochkarten, die in Stapeln(Batch) geordnet wurden und nacheinander vom Stapel zur Verarbeitung genommen werden. Diese werden von einem Scheduler verwaltet.
+
+Die Jobs werden so verteilt, dass die Ressourcen optimal genutzt werden und das die Jobs wie gewünscht priorisiert werden. So wird das Problem von ineffizienter Nutzung gelöst.
+
+Nennen Sie drei Beispiele für HPC-Batch-Queuing-Systeme.
+
+SLURM (Simple Linux Utility Resource Management) für große Linux Cluster mit Skalierbarkeit für tausende CPUs
+
+LSF (Load Shareing Facility) kommerzielle Clustersoftware von IBM für hohe Flexibilität bei der Clustergestaltung
+
+TORQUE (Terascale Open-source Resource and Queue Manager) Verteilter Ressourcenmanager um Batch-Jobs auf verteilten HPC Systemen zu überwachen
+
+Welches Batch-Queuing-System wird auf dem WR-Cluster verwendet?
+
+Auf dem WR Cluster wird SLURM verwendet.
+
+Machen Sie sich mit der Manpage von sbatch vertraut. Beschreiben Sie die Funk-
 tionsweise des Kommandos.
-   Es erwartet ein bash script as argument (das "batch script"). In diesem script können mit
-   "#SBATCH" verschiedene option konfiguriert werden, z.b. wie viele Knoten benötig werden.
-   Der resultierende Job wird dann in die queue eingereiht und zu einem späterem Zeitpunkt
-   ausgeführt. Dabei wird das skript dann nur einmal auf dem ersten Cluster ausgeführt.
-5. Wie lassen sich die aktuellen Jobs und deren Status auf der Kommandozeile
+
+Das Kommando fügt Batch Skripte zu SLURM hinzu. Die Jobs, die so auf den Cluster geladen werden, werden ausgeführt, sobald Ressourcen dafür frei sind.
+
+Wie lassen sich die aktuellen Jobs und deren Status auf der Kommandozeile
 anzeigen?
-   "smap"
-6. Machen Sie sich mit dem Befehl sview vertraut. Beschreiben Sie die wichtigsten
+
+Mit squeue kann man die informationen innerhalb einer SLURM scheduling queue anzeigen lassen.
+
+Machen Sie sich mit dem Befehl sview vertraut. Beschreiben Sie die wichtigsten
 Vorteile gegenüber dem vorigen Punkt.
-   (Ich habe keine X weiterleitung eingerichtet und kann das daher jetzt gerade nicht auspropbieren)
-7. Gibt es eine Möglichkeit, einen bereits abgeschickten Job zu löschen (bevor oder
+
+sview ist eine graphische Oberfläche wo in SLURM die Konfiguration, Job, Schritt des Jobs, die Knoten und Statusinformationen angezeigt werden können. 
+
+Die graphische Oberfläche macht das Arbeiten deutlich einfacher. Es gibt einen Admin Modus, wo Knotenlimits, Joblimits oder die Allgemeine Konfiguration geändert werden kann.
+
+Gibt es eine Möglichkeit, einen bereits abgeschickten Job zu löschen (bevor oder
 während er läuft)? Wenn ja, wie?
-   Ja, mit "scancel" und der job id die von "sbatch" ausgegeben wird (oder mit "smap" gesehen wird)
-8. Können auf dem Cluster mehrere Nutzer oder Jobs gleichzeitig denselben west-
+
+Mit scancel können Jobs signalisiert werden. Abgebrochen werden können Jobs, Jobarrays oder Jobschritte.
+
+Können auf dem Cluster mehrere Nutzer oder Jobs gleichzeitig denselben west-
 Knoten benutzen?
-   Ja, kann mit "scontrol show parition west" eingesehen werden
-9. Finden Sie heraus wie Sie sich den detaillierten Status eines Jobs (seine Konfigu-
+
+Ja, da mit einem Batch Queueing System ein Ressourcenmanagement die Jobs auf dem Knoten verwaltet, können mehrere Nutzer ihre Jobs auf dem Knoten starten.
+
+Finden Sie heraus wie Sie sich den detaillierten Status eines Jobs (seine Konfigu-
 ration) ausgeben lassen können.
-   "scontrol show job [<id>]"
-10. Welche Scheduling-Verfahren sind bei dem auf dem Cluster benutzten System
+
+Mit dem Befehl Der Befehl scontrol können Job, Jobsteb, Knoten, Partition, Reservierung, und die allgemeine Systemkonfiguration angesehen und bearbeitet werden.
+
+Genauer Befehl für die Aufgabe: scontrol show jobid -dd <jobid> 
+
+Welche Scheduling-Verfahren sind bei dem auf dem Cluster benutzten System
 möglich? Welches wird benutzt? Erläutern Sie jedes der Verfahren kurz.
-   Eingebaut sind "backfill scheduling" und "builtin scheduling". "backfill" wird verwendet
-   (sichtbar mit "scontrol show config | grep SchedulerType").
-   "builtin" führt jobs strikt nach der priority queue aus.
-   "backfill" hingegen führt lower priority jobs aus wenn platz ist und kein higher priority
-   job dadurch verlangsamt wird.
-11. Finden Sie heraus, wie Sie einen einzelnen Knoten allokieren können. Allokieren
+
+Backfill Scheduling ist die default option bei SLURM. Hier werden kleine Jobs vorgezogen, größere Jobs müssen länger auf Zuteilung warten, wenn nicht genügend Knoten frei sind. Dadurch kann es dazu kommen, das größere Jobs zu lange warten müssen.
+
+Builtin Scheduling führt nach priority queue aus, unabhängig vom Ressourcenverbrauch des jeweiligen Jobs. Kleinere Jobs müssen warten bis genug Knoten frei sind, falls durch einen größeren Job blockiert wird.
+
+Finden Sie heraus, wie Sie einen einzelnen Knoten allokieren können. Allokieren
 Sie gezielt einen bestimmten Knoten (z. B. west7), bauen Sie mittels ssh eine
 Verbindung zu diesem Knoten auf und führen sie hostname darauf aus.
-  "salloc -p <partition> -w <host name> -N 1"
-```
-krupp@cluster:~/HLR-exercise/03-PDE$ salloc -p west -w west9 -N 1
-salloc: Granted job allocation 176118
-krupp@cluster:~/HLR-exercise/03-PDE$ ssh krupp@west9
-Welcome to Ubuntu 20.04.5 LTS (GNU/Linux 5.4.0-135-generic x86_64)
 
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/advantage
-New release '22.04.5 LTS' available.
-Run 'do-release-upgrade' to upgrade to it.
-
-Last login: Fri Nov  1 10:52:25 2024 from 10.0.0.247
-Loading mpich/4.0.2-ogro7lx
-  Loading requirement: libpciaccess/0.16-7jhwgwu libiconv/1.16-ziiktdn xz/5.2.5-way52qy zlib/1.2.12-gwj6onn libxml2/2.9.13-guuo3j2 ncurses/6.3-pj7zmps
-    hwloc/2.8.0-ip4dp3b libnl/3.3.0-kfyscsh rdma-core/41.0-nafbo2z libfabric/1.14.1-poscxaq yaksa/0.2-hrz2a3v
-krupp@west9:~$ hostname
-west9
-krupp@west9:~$ exit
-logout
-Connection to west9 closed.
-krupp@cluster:~/HLR-exercise/03-PDE$ smap
-krupp@cluster:~/HLR-exercise/03-PDE$ scancel 176118
-salloc: Job allocation 176118 has been revoked.
-```
-12. Wie hoch ist das Zeitlimit auf dem Cluster, bis ein Knoten spätestens wieder
-freigegeben wird?
-   6 Stunden, check via "scontrol show parition"
-13. Wie können Sie die Priorität Ihrer Jobs nachschauen? Können Sie diese verändern
-oder beeinflussen?
-   Mit "scontrol show job" sichtbar. Kann begrenzt mit der `--nice` option beim job start beeinflusst werden
-14. Welche unterschiedlichen Partitionen sind auf dem Cluster eingerichtet? Wie
-kann die zu benutzende Partition geändert werden?
-```
-krupp@cluster:~/HLR-exercise/03-PDE$ sinfo
+sinfo
 PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
 amd          up    6:00:00      3  down* amd[2-4]
 magny        up    6:00:00      1  drain magny1
 nehalem      up    6:00:00      1  down* nehalem5
 west         up    6:00:00     10   idle west[1-10]
-```
-  Die parition kann bei `salloc` und `sbatch` mithilfe der `-p` option gewählt werden
 
-Aufgabe 2:
+srun --nodelist=west7 --partition=west --exclusive --pty bash
+srun hostnam
+west7
+
+Wie hoch ist das Zeitlimit auf dem Cluster, bis ein Knoten spätestens wieder
+freigegeben wird?
+
+Ein Knoten wird nach 6 Stunden automatisch freigegeben.
+
+Wie können Sie die Priorität Ihrer Jobs nachschauen? Können Sie diese verändern
+oder beeinflussen?
+
+Mit dem Befehl sprio können die Informationen zur Scheduler Priorisierung angesehen werden. Es können keine Priorisierungen verändert oder beeinflusst werden, da der Befehl nur read-only funktioniert.
+
+Welche unterschiedlichen Partitionen sind auf dem Cluster eingerichtet? Wie
+kann die zu benutzende Partition geändert werden?
+
+Die Partitionen sind amd, Magny, nehalem und West. Mit dem Befehl srun kann eine bestimmte Partion genutzt weden. Beispiel für einen befehl dazu:
+
+srun --partition=west --nodelist=west7 --exclusive --pty bash
+
+2 Shell-Script
 F1: Was fällt Ihnen auf? Versuchen Sie Ihre Beobachtung zu erklären!
-Die Reihenfolge der Ausgabe ist nicht konsitenz, und folgt auch nicht unbeding der ns Reihenfolge.
-Die Netzwerk kommunikation zwischen den verschiedenen Rechnerknoten führt zu einem zufälligem delay
+	Die Reihenfolge der Ausgabe ist nicht konsitenz, und folgt auch nicht unbeding der ns Reihenfolge.
+	Die Netzwerk kommunikation zwischen den verschiedenen Rechnerknoten führt zu einem zufälligem delay
 
-F2: Könnte man die Datei timescript.out auch innerhalb des Scriptes
-    timescript.sh erzeugen? Falls ja: Wie? Falls nein: Warum nicht?
-Fast. Mit dem "append" operator `>>` kann man die ausgabe direkt von timescript.sh in die Datei umlenken, jedoch
-gehen dabei manche Zeilen aufgrund von Race conditions verloren - srun mitigiert dies.
-Es wäre wahrscheinlich möglich manuel darauf zu achten das es nicht zu konflikten kommt, aber dies ist ja in
-diesem Fall nicht notwendig
+F2: Könnte man die Datei timescript.out auch innerhalb des Scriptes timescript.sh erzeugen? Falls ja: Wie? Falls nein: Warum nicht?
+	Fast. Mit dem "append" operator `>>` kann man die ausgabe direkt von timescript.sh in die Datei umlenken, jedoch
+	gehen dabei manche Zeilen aufgrund von Race conditions verloren - srun mitigiert dies.
+	Es wäre wahrscheinlich möglich manuel darauf zu achten das es nicht zu konflikten kommt, aber dies ist ja in
+	diesem Fall nicht notwendig
+3 PDE
+1 -Ofast optimiert aggressiv auf Geschwindigkeit, aber die Fließkommaberechnungen sind dementsprechend potenziell ungenau. Dabei wird die Standardkonformität gebrochen und somit wird das Debuggen erschwert  

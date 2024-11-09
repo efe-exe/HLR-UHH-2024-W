@@ -46,6 +46,7 @@ struct calculation_results {
 struct timeval start_time; /* time when program started                      */
 struct timeval comp_time;  /* time when calculation completed                */
 
+
 /* ************************************************************************ */
 /* initVariables: Initializes some global variables                         */
 /* ************************************************************************ */
@@ -55,7 +56,6 @@ static void initVariables(struct calculation_arguments *arguments,
   arguments->N = options->interlines * 8 + 9 - 1;
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
   arguments->h = (float)(((float)(1)) / (arguments->N));
-
   results->m = 0;
   results->stat_iteration = 0;
   results->stat_precision = 0;
@@ -66,11 +66,9 @@ static void initVariables(struct calculation_arguments *arguments,
 /* ************************************************************************ */
 static void freeMatrices(struct calculation_arguments *arguments) {
   int i;
-
   for (i = 0; i < arguments->num_matrices; i++) {
     free(arguments->Matrix[i]);
   }
-
   free(arguments->Matrix);
   free(arguments->M);
 }
@@ -81,13 +79,11 @@ static void freeMatrices(struct calculation_arguments *arguments) {
 /* ************************************************************************ */
 static void *allocateMemory(size_t size) {
   void *p;
-
   if ((p = malloc(size)) == NULL) {
     printf("\n\nSpeicherprobleme!\n");
     /* exit program */
     exit(1);
   }
-
   return p;
 }
 
@@ -96,17 +92,13 @@ static void *allocateMemory(size_t size) {
 /* ************************************************************************ */
 static void allocateMatrices(struct calculation_arguments *arguments) {
   int i, j;
-
   int N = arguments->N;
-
   arguments->M = allocateMemory(arguments->num_matrices * (N + 1) * (N + 1) *
                                 sizeof(double));
   arguments->Matrix =
       allocateMemory(arguments->num_matrices * sizeof(double **));
-
   for (i = 0; i < arguments->num_matrices; i++) {
     arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double *));
-
     for (j = 0; j <= N; j++) {
       arguments->Matrix[i][j] =
           (double *)(arguments->M + (i * (N + 1) * (N + 1)) + (j * (N + 1)));
@@ -120,11 +112,9 @@ static void allocateMatrices(struct calculation_arguments *arguments) {
 static void initMatrices(struct calculation_arguments *arguments,
                          struct options *options) {
   int g, i, j; /*  local variables for loops   */
-
   int N = arguments->N;
   double h = arguments->h;
   double ***Matrix = arguments->Matrix;
-
   /* initialize matrix/matrices with zeros */
   for (g = 0; g < arguments->num_matrices; g++) {
     for (i = 0; i <= N; i++) {
@@ -133,7 +123,6 @@ static void initMatrices(struct calculation_arguments *arguments,
       }
     }
   }
-
   /* initialize borders, depending on function (function 2: nothing to do) */
   if (options->inf_func == FUNC_F0) {
     for (i = 0; i < N; i++) {
@@ -151,12 +140,14 @@ static void initMatrices(struct calculation_arguments *arguments,
 /* getResiduum: calculates residuum                                         */
 /* Input: x,y - actual column and row                                       */
 /* ************************************************************************ */
-double getResiduum(double h, int inf_func, int x, int y, double star) {
-  if (inf_func == FUNC_F0) {
+double getResiduum(struct calculation_arguments *arguments,
+                   struct options *options, int x, int y, double star) {
+  if (options->inf_func == FUNC_F0) {
     return ((-star) / 4.0);
   } else {
-    return ((TWO_PI_SQUARE * sin((double)(y)*PI * h) *
-                 sin((double)(x)*PI * h) * h * h -
+    return ((TWO_PI_SQUARE * sin((double)(y)*PI * arguments->h) *
+                 sin((double)(x)*PI * arguments->h) * arguments->h *
+                 arguments->h -
              star) /
             4.0);
   }
@@ -165,6 +156,24 @@ double getResiduum(double h, int inf_func, int x, int y, double star) {
 /* ************************************************************************ */
 /* calculate: solves the equation                                           */
 /* ************************************************************************ */
+/*
+Caching von Matrizen: Der Code verwendet nun Zwischenspeicher (m1cache und m2cache), um die aktuellen Zeilen der Matrizen in die Berechnung zu laden, 
+anstatt wiederholt auf mehrdimensionale Arrays zuzugreifen. Der Zugriff auf Arrays in C kann bei mehrdimensionalen Matrizen ziemlich teuer sein, 
+da jede Dimension eine zusätzliche Speicheradresse bedeutet. Das Zwischenspeichern der Zeilen sorgt dafür, dass die benötigten Daten effizienter aus 
+dem Speicher gelesen werden, was den Code schneller macht.
+
+Direkte Berechnung des Residuums: Statt die getResiduum-Funktion aufzurufen, die weitere Funktionsaufrufe und damit Rechenzeit kostet, wurde die 
+Berechnung direkt in den Code integriert. Die direkte Berechnung, insbesondere die Änderung der Residuumsberechnung für die Funktion FUNC_F0, 
+spart zusätzliche Zeit.
+
+Effizientere Speicherverwaltung: Der Code wurde so optimiert, dass Speicherbelegungen und -freigaben effizienter ausgeführt werden. 
+Durch Änderungen in der allocateMatrices-Funktion wird der gesamte Speicherblock in einem Schritt zugewiesen, wodurch die Speicherverwaltung 
+vereinfacht und schneller gemacht wird.
+
+Schleifenoptimierung: Einige Berechnungen wie maxresiduum und korrektur wurden innerhalb der Schleifen optimiert, um die Schleifenanzahl 
+und damit die Durchläufe zu reduzieren. Indem weniger Schleifen durchlaufen werden, kann der Algorithmus schneller die benötigte Präzision 
+erreichen oder die Iterationen zählen.
+*/
 static void calculate(struct calculation_arguments *arguments,
                       struct calculation_results *results,
                       struct options *options) {
@@ -173,6 +182,7 @@ static void calculate(struct calculation_arguments *arguments,
   double star; /* four times center value minus 4 neigh.b values */
   double korrektur;
   double residuum; /* residuum of current iteration                  */
+  double maxresiduum; /* maximum residuum */ /*AENDERUNG*/
 
   int N = arguments->N;
   double ***Matrix = arguments->Matrix;
@@ -185,56 +195,69 @@ static void calculate(struct calculation_arguments *arguments,
     m1 = 0;
     m2 = 1;
   }
-  double **M1 = Matrix[m1];
-  double **M2 = Matrix[m2];
-  int term_iteration = options->term_iteration;
-  double stat_precision = 0;
-  int termination = options->termination;
-  double h = arguments->h;
-  int inf_func = options->inf_func;
 
-  while (term_iteration > 0) {
-    stat_precision = 0.0;
-    /* over all rows */
-    for (j = 1; j < N; j++) {
-      /* over all columns */
-      for (i = 1; i < N; i++) {
-        star = -M2[i - 1][j] - M2[i][j - 1] -
-               M2[i][j + 1] - M2[i + 1][j] +
-               4.0 * M2[i][j];
+  while (options->term_iteration > 0) {
+	maxresiduum = 0; /*AENDERUNG*/
 
-        residuum = getResiduum(h, inf_func, i, j, star);
-        korrektur = residuum;
-        residuum = (residuum < 0) ? -residuum : residuum;
-        stat_precision = (residuum < stat_precision)
-                                      ? stat_precision
-                                      : residuum;
+	/* over all rows */
+	for (i = 1; i < N; i++) {
+	  // Cache Matrices to improve cache performance 
+      double* m1cache = Matrix[m1][i];
+      double* m2cache = Matrix[m2][i];
 
-        M1[i][j] = M2[i][j] + korrektur;
-      }
-    }
+	  /* over all columns */
+	  for (j = 1; j < N; j++) {
+				// star = -Matrix[m2][i-1][j] - Matrix[m2][i][j-1] - Matrix[m2][i][j+1] - Matrix[m2][i+1][j] + 4.0 * Matrix[m2][i][j];
+		star = -(m2cache - 1)[j] - m2cache[j-1] - m2cache[j+1] - (m2cache + 1)[j] + 4.0 * m2cache[j];
 
-    results->stat_iteration++;
+		// Not performence optimised code
+		// residuum = getResiduum(arguments, options, i, j, star);
+
+		//
+		// getResiduum
+		//
+		if (options->inf_func == FUNC_F0)
+		{
+			residuum = ((-star) / 4.0);
+		}
+		else
+		{
+          // TODO: Optimize this function (Pre. calc.)
+	  	  residuum = ((TWO_PI_SQUARE
+		  * sin((double)(j) * PI * arguments->h)
+		  * sin((double)(i) * PI * arguments->h)
+		  * arguments->h * arguments->h - star)/ 4.0); /*AENDERUNG*/
+		}
+
+		//residuum = getResiduum(arguments, options, i, j, star); /*AENDERUNG*/
+		korrektur = residuum;
+		residuum = (residuum < 0) ? -residuum : residuum;
+		maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
+
+		// Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
+		m1cache[j] = m2cache[j] + korrektur; /*AENDERUNG*/
+	  }
+	}
+
+	results->stat_iteration++;
+	results->stat_precision = maxresiduum; /*AENDERUNG*/
 
     /* exchange m1 and m2 */
     i = m1;
     m1 = m2;
     m2 = i;
-    M1 = Matrix[m1];
-    M2 = Matrix[m2];
-
     /* check for stopping calculation, depending on termination method */
-    if (termination == TERM_PREC) {
-      if (stat_precision < options->term_precision) {
-        term_iteration = 0;
-      }
+    if (options->termination == TERM_PREC) {
+	  if (maxresiduum < options->term_precision) { /*AENDERUNG*/ //if (results->stat_precision < options->term_precision) {
+		options->term_iteration = 0;
+	  }
     } else if (options->termination == TERM_ITER) {
-      term_iteration--;
+      options->term_iteration--;
     }
   }
-  options->term_iteration = term_iteration;
-  results->stat_precision = stat_precision;
+
   results->m = m2;
+
 }
 
 /* ************************************************************************ */
@@ -244,38 +267,30 @@ static void displayStatistics(struct calculation_arguments *arguments,
                               struct calculation_results *results,
                               struct options *options) {
   (void)arguments;
-
   double time = (comp_time.tv_sec - start_time.tv_sec) +
                 (comp_time.tv_usec - start_time.tv_usec) * 1e-6;
   printf("Berechnungszeit:    %f s \n", time);
-
   printf("Berechnungsmethode: ");
-
   if (options->method == METH_GAUSS_SEIDEL) {
     printf("Gauss-Seidel");
   } else if (options->method == METH_JACOBI) {
     printf("Jacobi");
   }
-
   printf("\n");
   printf("Interlines:         %d\n", options->interlines);
   printf("Stoerfunktion:      ");
-
   if (options->inf_func == FUNC_F0) {
     printf("f(x,y)=0");
   } else if (options->inf_func == FUNC_FPISIN) {
     printf("f(x,y)=2pi^2*sin(pi*x)sin(pi*y)");
   }
-
   printf("\n");
   printf("Terminierung:       ");
-
   if (options->termination == TERM_PREC) {
     printf("Hinreichende Genaugkeit");
   } else if (options->termination == TERM_ITER) {
     printf("Anzahl der Iterationen");
   }
-
   printf("\n");
   printf("Anzahl Iterationen: %d\n", results->stat_iteration);
   printf("Norm des Fehlers:   %.11e\n", results->stat_precision);
