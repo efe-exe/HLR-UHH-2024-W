@@ -373,8 +373,8 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}					//wenn if true wird parallelisiert            //threads über ersten parameter gesetzt
-#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \		// private oder shared deklaration wird erzwungen
-    private(i, j, star, residuum, maxLocalResiduum) \ 		//nur relevant für eine Rechung im jeweiligen Thread, werden verändert
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) 		/* private oder shared deklaration wird erzwungen */ \
+    private(i, j, star, residuum, maxLocalResiduum) 		/*nur relevant für eine Rechung im jeweiligen Thread, werden verändert */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)		//werden nicht verändert oder nur syncronisiert verändert
 {
 	while (term_iteration > 0)
@@ -389,7 +389,7 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
         #pragma omp barrier			//sync punkt, alle threads müssen diesen erreichen bevor weiter gerechnet wird
 									//außerhalb von schleifen, zwecks performance und Threadunabhänigkeit
 		/* over all rows */
-        #pragma omp for 				//for schleife über alle threads parallel
+        #pragma omp for				//for schleife über alle threads parallel , Aufgabe 2b scheduler(x,y)
 		for (i = 1; i < N; i++)
 		{
 			double fpisin_i = 0.0;
@@ -531,7 +531,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 #pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
-    private(i, j, star, residuum, maxLocalResiduum) \		//fpisin_i vorher in private, jetzt in shared. Gleich über alle threads, weil reihe für reihe berechnet wird
+    private(i, j, star, residuum, maxLocalResiduum) 	/*fpisin_i vorher in private, jetzt in shared. Gleich über alle threads, weil reihe für reihe berechnet wird */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum, fpisin_i)
 {
 	while (term_iteration > 0)
@@ -695,7 +695,7 @@ calculate_element (struct calculation_arguments const* arguments, struct calcula
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 #pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
-    private(i, j, star, residuum, maxLocalResiduum) \		//fpisin_i wird nicht mehr verwendet, keine unterteilung reihen und spalten, fpisin in innerer for s.
+    private(i, j, star, residuum, maxLocalResiduum) 	/*fpisin_i wird nicht mehr verwendet, keine unterteilung reihen und spalten, fpisin in innerer for s. */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
 {
 	while (term_iteration > 0)
