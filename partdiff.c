@@ -177,7 +177,21 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 }
 
 /* ************************************************************************ */
-/* calculate: solves the equation                                           */
+/*                                                                          */
+/* @brief Solves the equation using the specified method and options.       */
+/*                                                                          */
+/* This function performs the calculation to solve                          */
+/* the equation based on the provided arguments,                            */
+/* results, and options. It supports different methods                      */
+/* (e.g., Jacobi) and termination criteria                                  */
+/* (e.g., precision, iteration count).                                      */
+/*                                                                          */
+/* @param arguments Pointer to the structure                                */
+/*      containing calculation arguments.                                   */
+/* @param results Pointer to the structure                                  */
+/*      to store calculation results.                                       */
+/* @param options Pointer to the structure                                  */
+/*      containing options for the calculation.                             */
 /* ************************************************************************ */
 static
 void
@@ -277,6 +291,45 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief Calculate a row of the matrix using                               */
+/*  the specified method and options.                                       */
+/*                                                                          */
+/* This function performs the calculation of a row in the matrix based      */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrix to be calculated.                        */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each row and column of the matrix.        */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_row (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -395,6 +448,45 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief Calculate a column of the matrix using                            */
+/*  the specified method and options.                                       */
+/*                                                                          */
+/* This function performs the calculation of a column in the matrix based   */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrix to be calculated.                        */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each row and column of the matrix.        */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_column (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -517,6 +609,45 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief Calculate an element of the matrix using                          */
+/*  the specified method and options.                                       */
+/*                                                                          */
+/* This function performs the calculation of an element in the matrix based */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrix to be calculated.                        */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each element of the matrix.               */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_element (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
