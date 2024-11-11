@@ -390,7 +390,7 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
         #pragma omp barrier			//sync punkt, alle threads müssen diesen erreichen bevor weiter gerechnet wird
 									//außerhalb von schleifen, zwecks performance und Threadunabhänigkeit
 		/* over all rows */
-        #pragma omp for				//for schleife über alle threads parallel , ++++++++ Aufgabe 2b scheduler(x,y)+++++++++++++
+        #pragma omp for				//for schleife über alle threads parallel , ++++++++ Aufgabe 2b scheduler(x,y)++++++++++++
 		for (i = 1; i < N; i++)
 		{
 			double fpisin_i = 0.0;
