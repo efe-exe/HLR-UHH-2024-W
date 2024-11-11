@@ -373,9 +373,10 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}					//wenn if true wird parallelisiert            //threads über ersten parameter gesetzt
-#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) 		/* private oder shared deklaration wird erzwungen */ \
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) 		/* private oder shared mit default deklaration wird erzwungen */ \
     private(i, j, star, residuum, maxLocalResiduum) 		/*nur relevant für eine Rechung im jeweiligen Thread, werden verändert */ \
-    shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)		//werden nicht verändert oder nur syncronisiert verändert
+    shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
+        //werden nicht verändert oder nur syncronisiert verändert
 {
 	while (term_iteration > 0)
 	{
@@ -389,7 +390,7 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
         #pragma omp barrier			//sync punkt, alle threads müssen diesen erreichen bevor weiter gerechnet wird
 									//außerhalb von schleifen, zwecks performance und Threadunabhänigkeit
 		/* over all rows */
-        #pragma omp for				//for schleife über alle threads parallel , Aufgabe 2b scheduler(x,y)
+        #pragma omp for				//for schleife über alle threads parallel , ++++++++ Aufgabe 2b scheduler(x,y)+++++++++++++
 		for (i = 1; i < N; i++)
 		{
 			double fpisin_i = 0.0;
