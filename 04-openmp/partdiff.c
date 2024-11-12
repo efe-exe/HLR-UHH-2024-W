@@ -389,7 +389,7 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 		maxLocalResiduum = 0;
         #pragma omp barrier			//sync punkt, alle threads müssen diesen erreichen bevor weiter gerechnet wird
 									//außerhalb von schleifen, zwecks performance und Threadunabhänigkeit
-		/* over all rows */
+		/* over all rows */			//Reihen hier paralellisiert
         #pragma omp for				//for schleife über alle threads parallel , ++++++++ Aufgabe 2b scheduler(x,y)++++++++++++
 		for (i = 1; i < N; i++)
 		{
@@ -560,7 +560,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 				}
             }
 
-			/* over all columns */
+			/* over all columns */					//spalten hier parallelisiert
             #pragma omp for
 			for (j = 1; j < N; j++)
 			{
@@ -712,7 +712,7 @@ calculate_element (struct calculation_arguments const* arguments, struct calcula
 		maxLocalResiduum = 0;
         #pragma omp barrier
 
-		/* over all rows */
+		/* over all rows */				//hier alle elemente parallelisert
         #pragma omp for collapse(2) //collapse(2) führt die nächsten 2 schleifen gleichzeitig parallel aus
 		for (i = 1; i < N; i++)
 		{
