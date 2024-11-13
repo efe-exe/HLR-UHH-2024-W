@@ -68,7 +68,7 @@ void initVariables(void) {
 void allocateMatrices(void) {
   int i, j; /* local variables */
 
-  Matrix = (double ***)calloc(2, sizeof(char **)); /* allocate memory */
+  Matrix = (double ***)calloc(2, sizeof(char **)); /* allocate memory */       //double * anstelle von char
   if (Matrix == 0) {
     errorQuit();
   } /* quit if error   */
@@ -85,8 +85,8 @@ void allocateMatrices(void) {
     errorQuit();
   } /* quit if error   */
 
-  M = malloc(sizeof(double) * (N + 1) * (N + 1) * 2); /* allocate memory */
-  if (M == 0) {
+  M = malloc(sizeof(double) * (N + 1) * (N + 1) * 2); /* allocate memory */                      // zweites N + 1 war vorher -
+  if (M == 0) {                                                                                  // Matrix wäre sonst nicht quadratisch + out of bounds versuch zu schreiben
     errorQuit();
   } /* quit if error   */
 
@@ -147,18 +147,18 @@ void initMatrices(void) {
 /* freeMatrices: frees memory for matrices                                  */
 /* ************************************************************************ */
 void freeMatrices(void) {
-  if (Matrix != 0) {
-    if (Matrix[0] != 0)
-      free(Matrix[0]);
-    if (Matrix[1] != 0)
-      free(Matrix[1]);
-    free(Matrix);
-    Matrix = NULL;
+ if(Matrix != 0) {        //Matrixfälle freigeben wenn !=0
+   if(Matrix[0] != 0)
+    free(Matrix[0]);
+   if(Matrix[1] != 0)
+     free(Matrix[1]);
+  free(Matrix);
+  Matrix = NULL;            //keinen Pointer mehr als 1 mal free aufrufen, ungewünschter free aufruf wird verhindert
   }
-  if (M != NULL) {
+  if(M != NULL) {          //damit keine unvorhergesehenen operationen ausgeführt werden, (double free)
     free(M);
     M = NULL;
-  }
+    }
 }
 
 /* ************************************************************************ */
@@ -209,7 +209,7 @@ void calculate(void) {
     {                         /*                   */
       for (i = 1; i < N; i++) /* over all rows  */
       {
-        star = -Matrix[m2][i - 1][j] - Matrix[m2][j - 1][i] +
+        star = -Matrix[m2][i - 1][j] - Matrix[m2][i][j - 1] +                  //vorher j-1 m2 vertauschen, I muss nach m2 kommen, out of bounds fehler
                4 * Matrix[m2][i][j] - Matrix[m2][i][j + 1] -
                Matrix[m2][i + 1][j];
 
@@ -282,9 +282,9 @@ int main(int argC, char **argV) {
   allocateMatrices(); /*  get and initialize variables and matrices  */
   initMatrices();     /* ******************************************* */
 
-  start_time = time(NULL); /*  start timer         */
+  start_time = time(NULL);  /*  start timer          */                    // start und stop vertauscht
   calculate();             /*  solve the equation  */
-  comp_time = time(NULL);  /*  stop timer          */
+  comp_time = time(NULL); /*  stop timer         */                        //
 
   displayStatistics();                      /* **************** */
   DisplayMatrix("Matrix: ",                 /*  display some    */

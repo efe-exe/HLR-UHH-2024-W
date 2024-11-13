@@ -177,7 +177,21 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 }
 
 /* ************************************************************************ */
-/* calculate: solves the equation                                           */
+/*                                                                          */
+/* @brief Solves the equation using the specified method and options.       */
+/*                                                                          */
+/* This function performs the calculation to solve                          */
+/* the equation based on the provided arguments,                            */
+/* results, and options. It supports different methods                      */
+/* (e.g., Jacobi) and termination criteria                                  */
+/* (e.g., precision, iteration count).                                      */
+/*                                                                          */
+/* @param arguments Pointer to the structure                                */
+/*      containing calculation arguments.                                   */
+/* @param results Pointer to the structure                                  */
+/*      to store calculation results.                                       */
+/* @param options Pointer to the structure                                  */
+/*      containing options for the calculation.                             */
 /* ************************************************************************ */
 static
 void
@@ -209,12 +223,14 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 		m2 = 0;
 	}
 
+    /* Calculate the pih and fpisin values if the function is FPISIN */
 	if (options->inf_func == FUNC_FPISIN)
 	{
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 
+    /* Perform the calculation based on the termination method:*/
 	while (term_iteration > 0)
 	{
 		double** Matrix_Out = arguments->Matrix[m1];
@@ -277,6 +293,46 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief solves the pde for the complete matrix useing openmp in a row vise*/
+/*  fashion.                                                                */
+/*                                                                          */
+/* This function performs the calculation on the matrix based               */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrices to be calculated on.                   */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each row and column of the matrix.
+/*    Each row gets assinged a thread and each thread works on all colloms. */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_row (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -287,7 +343,8 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 	double residuum;    /* residuum of current iteration */
 	double maxResiduum; /* maximum residuum value of a slave in iteration */
 	double maxLocalResiduum; /* maximum residuum value of a slave in iteration in a thread */
-
+										//maxLocalResiduum updated for each calculation, doesnt require sync. between Threads
+        								//code is faster
 	int const N = arguments->N;
 	double const h = arguments->h;
 
@@ -315,24 +372,25 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 	{
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
-	}
-#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
-    private(i, j, star, residuum, maxLocalResiduum) \
+	}					//wenn if true wird parallelisiert            //threads über ersten parameter gesetzt
+#pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) 		/* private oder shared mit default deklaration wird erzwungen */ \
+    private(i, j, star, residuum, maxLocalResiduum) 		/*nur relevant für eine Rechung im jeweiligen Thread, werden verändert */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
+        //werden nicht verändert oder nur syncronisiert verändert
 {
 	while (term_iteration > 0)
 	{
-        #pragma omp master
+        #pragma omp master				//wird nur im Master thread ausgeführt
         {
 		 	Matrix_Out  = arguments->Matrix[m1];
 			Matrix_In   = arguments->Matrix[m2];
 		    maxResiduum = 0;
 		}
 		maxLocalResiduum = 0;
-        #pragma omp barrier
-
+        #pragma omp barrier			//sync punkt, alle threads müssen diesen erreichen bevor weiter gerechnet wird
+									//außerhalb von schleifen, zwecks performance und Threadunabhänigkeit
 		/* over all rows */
-        #pragma omp for
+        #pragma omp for				//for schleife über alle threads parallel , ++++++++ Aufgabe 2b scheduler(x,y)+++++++++++++
 		for (i = 1; i < N; i++)
 		{
 			double fpisin_i = 0.0;
@@ -356,15 +414,15 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 				{
 					residuum = Matrix_In[i][j] - star;
 					residuum = (residuum < 0) ? -residuum : residuum;
-                    if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}
+                    if (residuum > maxLocalResiduum) {maxLocalResiduum = residuum;}			//maxLocal verwendet
 				}
 
 				Matrix_Out[i][j] = star;
 			}
 		}
-		#pragma omp atomic compare
+		#pragma omp atomic compare												//compiler stellt korrektheit vom nächsten If statement sicher
 		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
-        #pragma omp barrier
+        #pragma omp barrier //sync
 		#pragma omp master
 		{
 
@@ -389,12 +447,50 @@ calculate_row (struct calculation_arguments const* arguments, struct calculation
 				term_iteration--;
 			}
         }
-        #pragma omp barrier
+        #pragma omp barrier //sync
 	}
 } /* End #pragma parallel */
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief Calculate the pde of the matrix in a collumn vise fashion         */
+/*                                                                          */
+/* This function performs the calculation on the matrix based               */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrix to be calculated.                        */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each row and column of the matrix.        */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_column (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -405,7 +501,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 	double residuum;    /* residuum of current iteration */
 	double maxResiduum; /* maximum residuum value of a slave in iteration */
 	double maxLocalResiduum; /* maximum residuum value of a slave in iteration in a thread */
-
+    
 	int const N = arguments->N;
 	double const h = arguments->h;
 
@@ -436,11 +532,12 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 #pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
-    private(i, j, star, residuum, maxLocalResiduum) \
+    private(i, j, star, residuum, maxLocalResiduum) 	/*fpisin_i vorher in private, jetzt in shared. Gleich über alle threads, weil reihe für reihe berechnet wird */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum, fpisin_i)
 {
 	while (term_iteration > 0)
 	{
+        /* Master thread initializes the matrices for the current iteration and resets maxResiduum */
         #pragma omp master
         {
 		 	Matrix_Out  = arguments->Matrix[m1];
@@ -453,7 +550,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 		/* over all rows */
 		for (i = 1; i < N; i++)
 		{
-            #pragma omp single
+            #pragma omp single										//block wird nur nch einmal ausgeführt
             {
 				fpisin_i = 0.0;
 
@@ -484,6 +581,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 				Matrix_Out[i][j] = star;
 			}
 		}
+        /*thread calculates the maxLocalresiduum value */
 		#pragma omp atomic compare
 		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
         #pragma omp barrier
@@ -501,6 +599,7 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 			/* check for stopping calculation depending on termination method */
 			if (options->termination == TERM_PREC)
 			{
+                /* If the maximum residuum is smaller than the precision, the calculation stops */
 				if (maxResiduum < options->term_precision)
 				{
 					term_iteration = 0;
@@ -517,6 +616,45 @@ calculate_column (struct calculation_arguments const* arguments, struct calculat
 
 	results->m = m2;
 }
+
+/* ************************************************************************ */
+/* @brief Calculate an element of the matrix using                          */
+/*  the specified method and options.                                       */
+/*                                                                          */
+/* This function performs the calculation of an element in the matrix based */
+/* on the provided arguments, results, and options. It supports parallel    */
+/* execution using OpenMP if the Jacobi method is selected.                 */
+/*                                                                          */
+/* @param arguments Pointer to the structure containing                     */
+/*  calculation arguments.                                                  */
+/* @param results Pointer to the structure containing                       */
+/*  calculation results.                                                    */
+/* @param options Pointer to the structure containing                       */
+/*  options for the calculation.                                            */
+/*                                                                          */
+/* The function uses the following parameters from the structures:          */
+/* - arguments->N: The size of the matrix.                                  */
+/* - arguments->h: The step size.                                           */
+/* - arguments->Matrix: The matrix to be calculated.                        */
+/* - options->method: The method to be used (Jacobi or Gauss-Seidel).       */
+/* - options->inf_func: The function to be used for initialization.         */
+/* - options->term_iteration: The number of iterations for the calculation. */
+/* - options->termination: The termination condition (precision/iteration). */
+/* - options->term_precision: The precision for termination.                */
+/* - options->number: The number of threads for parallel execution.         */
+/* - results->stat_iteration: The number of iterations performed.           */
+/* - results->stat_precision: The precision achieved.                       */
+/* - results->m: The index of the matrix used for the final result.         */
+/*                                                                          */
+/* The function performs the following steps:                               */
+/* 1. Initialize local variables and parameters based on the options.       */
+/* 2. Set up parallel execution if the Jacobi method's selected.            */
+/* 3. Perform the calculation for each element of the matrix.               */
+/* 4. Update the maximum residuum value for convergence checking.           */
+/* 5. Exchange the old and new matrices for the next iteration.             */
+/* 6. Check for stopping conditions based on the termination method.        */
+/* 7. Update the results structure with iteration count and precision.      */
+/* ************************************************************************ */
 static
 void
 calculate_element (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
@@ -551,28 +689,31 @@ calculate_element (struct calculation_arguments const* arguments, struct calcula
 		m2 = 0;
 	}
 
+    /* Calculate the pih and fpisin values if the function is FPISIN */
 	if (options->inf_func == FUNC_FPISIN)
 	{
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 #pragma omp parallel if(options->method == METH_JACOBI) default(none) num_threads(options->number) \
-    private(i, j, star, residuum, maxLocalResiduum) \
+    private(i, j, star, residuum, maxLocalResiduum) 	/*fpisin_i wird nicht mehr verwendet, keine unterteilung reihen und spalten, fpisin in innerer for s. */ \
     shared(arguments, m1, m2, N, options, pih, fpisin, term_iteration, results, Matrix_Out, Matrix_In, maxResiduum)
 {
 	while (term_iteration > 0)
 	{
+        /* Master thread initializes the matrices for the current iteration and resets maxResiduum */
         #pragma omp master
         {
 		 	Matrix_Out  = arguments->Matrix[m1];
 			Matrix_In   = arguments->Matrix[m2];
 		    maxResiduum = 0;
 		}
+        /* Each thread initializes its local maxLocalResiduum */
 		maxLocalResiduum = 0;
         #pragma omp barrier
 
 		/* over all rows */
-        #pragma omp for collapse(2)
+        #pragma omp for collapse(2) //collapse(2) führt die nächsten 2 schleifen gleichzeitig parallel aus
 		for (i = 1; i < N; i++)
 		{
 			/* over all columns */
@@ -595,6 +736,7 @@ calculate_element (struct calculation_arguments const* arguments, struct calcula
 				Matrix_Out[i][j] = star;
 			}
 		}
+        /* thread calculates the maximum residuum value */
 		#pragma omp atomic compare
 		if (maxLocalResiduum > maxResiduum) {maxResiduum = maxLocalResiduum;}
         #pragma omp barrier
@@ -736,6 +878,12 @@ main (int argc, char** argv)
 	initMatrices(&arguments, &options);
 
 	gettimeofday(&start_time, NULL);
+    /* Perform the calculation based on the defined method:
+    * - SPALTE: Calculate by column
+    * - ZEILE: Calculate by row
+    * - ELEMENT: Calculate by element
+    * - Default: Sequential calculation
+    */
 #ifdef SPALTE
 	calculate_column(&arguments, &results, &options);
 #elif defined(ZEILE)
