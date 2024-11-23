@@ -416,6 +416,7 @@ calc_worker(void* thread_argument)
 			d->shared->m1 = 0;
 			d->shared->m2 = 0;
 		}
+        d->shared->maxResiduum = 0.0;
     }
 
 	if (options->inf_func == FUNC_FPISIN)
@@ -486,6 +487,7 @@ calc_worker(void* thread_argument)
 			{
 				d->shared->term_iteration--;
 			}
+            d->shared->maxResiduum = 0.0;
         }
 		pthread_barrier_wait(&d->shared->barrier);
 		term_iteration = d->shared->term_iteration;
