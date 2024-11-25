@@ -6,16 +6,22 @@ CFLAGS = -std=c11 -pedantic -Wall -Wextra -O3 -ggdb -gdwarf-4
 LFLAGS = $(CFLAGS)
 LIBS   = -lm -lpthread
 
-TGTS = partdiff-posix
-OBJS = partdiff.o askparams.o
+TGTS = partdiff-posix partdiff-sep
 
 # Targets ...
-all: partdiff-posix
+all: partdiff-posix partdiff-seq
 
-partdiff-posix: $(OBJS) Makefile
-	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
+partdiff-seq: partdiff-seq.o askparams.o Makefile
+	$(CC) $(LFLAGS) -o $@ partdiff-seq.o askparams.o $(LIBS)
 
-partdiff.o: partdiff.c Makefile
+partdiff-posix: partdiff-posix.o askparams.o Makefile
+	$(CC) $(LFLAGS) -o $@ partdiff-posix.o askparams.o $(LIBS)
+
+partdiff-seq.o: partdiff.c Makefile
+	$(CC) -c $(CFLAGS) -D SEQUENTIAL  partdiff.c -o partdiff-seq.o
+
+partdiff-posix.o: partdiff.c Makefile
+	$(CC) -c $(CFLAGS) partdiff.c -o partdiff-posix.o
 
 askparams.o: askparams.c Makefile
 
@@ -24,5 +30,5 @@ askparams.o: askparams.c Makefile
 	$(CC) -c $(CFLAGS) $*.c
 
 clean:
-	$(RM) $(OBJS)
+	$(RM) *.o
 	$(RM) $(TGTS)
