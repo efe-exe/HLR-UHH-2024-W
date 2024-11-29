@@ -286,11 +286,12 @@ calculate_seq (struct calculation_arguments const* arguments, struct calculation
 /*                     all of them.                                         */
 /* ************************************************************************ */
 struct shared_data {
-    pthread_barrier_t barrier;
-    pthread_mutex_t maxResiduumMutex;
-	int m1, m2;
-    double maxResiduum;
-    int term_iteration;
+    pthread_barrier_t barrier;  /* barrier for the sync points between each iteration */
+    pthread_mutex_t maxResiduumMutex; /* mutex to protect modifcations of shared->maxResiduum */
+    long unsigned int thread_count;  /* Actual number of threads used, might differ from options->number */
+	int m1, m2; /* The two matrix indices*/
+    double maxResiduum; /* The global maxResiduum this iteration */
+    int term_iteration; /* How many iterations are still to be done */
 	struct calculation_arguments const* arguments;
 	struct calculation_results* results;
 	struct options const* options;
@@ -302,7 +303,7 @@ struct shared_data {
 /* ************************************************************************ */
 struct thread_data {
   	pthread_t raw_thread;
-    long unsigned int thread_id;
+    long unsigned int thread_id; /* The ID of this thread */
     struct shared_data* shared;
 };
 
@@ -321,15 +322,16 @@ static
 void
 calculate_pthread (struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options)
 {
- 	struct thread_data* threads = calloc(sizeof(*threads), options->number);
     struct shared_data shared;
+    shared.thread_count = (options->method == METH_JACOBI) ? options->number : 1;
+ 	struct thread_data* threads = calloc(sizeof(*threads), shared.thread_count);
 	long unsigned int thread_id;
     int rc;
-
+    // Setup the shared state
 	shared.arguments = arguments;
 	shared.results = results;
 	shared.options = options;
-    if ((rc = pthread_barrier_init(&shared.barrier, NULL, options->number))) {
+    if ((rc = pthread_barrier_init(&shared.barrier, NULL, shared.thread_count))) {
     	printf("ERROR; return code from pthread_barrier_init() is %d\n", rc);
     	exit(-1);
     }
@@ -337,22 +339,24 @@ calculate_pthread (struct calculation_arguments const* arguments, struct calcula
 		printf("ERROR; return code from pthread_mutex_init() is %d\n", rc);
 		exit(-1);
 	}
-
-    for (thread_id = 0; thread_id < options->number; thread_id++) {
+    
+    // Setup the thread local data consisting of the thread_id and a pointer to the shared data
+    for (thread_id = 0; thread_id < shared.thread_count; thread_id++) {
 		threads[thread_id].thread_id = thread_id;
         threads[thread_id].shared = &shared;
     }
-    threads[0].raw_thread = pthread_self();
-    for (thread_id = 1; thread_id < options->number; thread_id++) {
+    threads[0].raw_thread = pthread_self(); // Thread 0 is the main thread. This line is not really necessary
+    for (thread_id = 1; thread_id < shared.thread_count; thread_id++) {
+        // Create a thread with `calc_worker`m giving it the thread local data initialized above
 		rc = pthread_create(&threads[thread_id].raw_thread, NULL, calc_worker, &threads[thread_id]);
 		if (rc) {
 			printf("ERROR; return code from pthread_create() is %d\n", rc);
             exit(-1);
 		}
     }
-    calc_worker(&threads[0]);
-    for (thread_id = 1; thread_id < options->number; thread_id++) {
-      	pthread_join(threads[thread_id].raw_thread, NULL);
+    calc_worker(&threads[0]); // After creating all sub threads, the main thread will also start working
+    for (thread_id = 1; thread_id < shared.thread_count; thread_id++) {
+      	pthread_join(threads[thread_id].raw_thread, NULL); // Afterwards we join all threads to make sure they are closed properly
     }
 	results->m = shared.m2;
     free(threads);
@@ -377,8 +381,8 @@ workload_border(int k, int t, int j)
 }
 
 /* ************************************************************************ */
-/* calc_worker: helper function for calculate_pthread, only forward         */
-/*              declared here, more docs later                              */
+/* calc_worker: helper function for calculate_pthread                       */
+/*              expects a pointer to an struct thread_data as it's argument */
 /* ************************************************************************ */
 static
 void*
@@ -400,10 +404,10 @@ calc_worker(void* thread_argument)
 	double fpisin = 0.0;
 
     int const workload = N - 1;
-    int const i_start = 1 + workload_border(workload, options->number, d->thread_id);
-    int const i_end = 1 + workload_border(workload, options->number, d->thread_id + 1);
+    int const i_start = 1 + workload_border(workload, d->shared->thread_count, d->thread_id);
+    int const i_end = 1 + workload_border(workload, d->shared->thread_count, d->thread_id + 1);
 
-	if (d->thread_id == 0) {
+	if (d->thread_id == 0) { // Use thread 0 (i.e. the main thread) here even thou it's the last one to start working (probably)
         d->shared->term_iteration = options->term_iteration;
 		/* initialize m1 and m2 depending on algorithm */
 		if (options->method == METH_JACOBI)
@@ -416,7 +420,7 @@ calc_worker(void* thread_argument)
 			d->shared->m1 = 0;
 			d->shared->m2 = 0;
 		}
-        d->shared->maxResiduum = 0.0;
+        d->shared->maxResiduum = 0.0; // Make sure to setup maxResiduum to not get weird values
     }
 
 	if (options->inf_func == FUNC_FPISIN)
@@ -424,7 +428,7 @@ calc_worker(void* thread_argument)
 		pih = PI * h;
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
-	pthread_barrier_wait(&d->shared->barrier);
+	pthread_barrier_wait(&d->shared->barrier); // Make everyone wait so that the main thread had time to setup everything correctly
     term_iteration = d->shared->term_iteration;
 	while (d->shared->term_iteration > 0)
 	{
@@ -463,10 +467,13 @@ calc_worker(void* thread_argument)
 				Matrix_Out[i][j] = star;
 			}
 		}
-        pthread_mutex_lock(&d->shared->maxResiduumMutex);
-        d->shared->maxResiduum = (maxLocalResiduum < d->shared->maxResiduum) ? d->shared->maxResiduum : maxLocalResiduum;
-        pthread_mutex_unlock(&d->shared->maxResiduumMutex);
-		if (pthread_barrier_wait(&d->shared->barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
+		if (options->termination == TERM_PREC || term_iteration == 1) // maxResiduum only needs to be synced if we are going to actually use it
+		{
+			pthread_mutex_lock(&d->shared->maxResiduumMutex);
+			d->shared->maxResiduum = (maxLocalResiduum < d->shared->maxResiduum) ? d->shared->maxResiduum : maxLocalResiduum;
+			pthread_mutex_unlock(&d->shared->maxResiduumMutex);
+		}
+		if (pthread_barrier_wait(&d->shared->barrier) == PTHREAD_BARRIER_SERIAL_THREAD) { // make sure that only one thread does the following.
 			results->stat_iteration++;
 			results->stat_precision = d->shared->maxResiduum;
 
@@ -489,7 +496,7 @@ calc_worker(void* thread_argument)
 			}
             d->shared->maxResiduum = 0.0;
         }
-		pthread_barrier_wait(&d->shared->barrier);
+		pthread_barrier_wait(&d->shared->barrier); // Wait for the above block to be executed so that the values are all correct.
 		term_iteration = d->shared->term_iteration;
 	}
     return NULL;

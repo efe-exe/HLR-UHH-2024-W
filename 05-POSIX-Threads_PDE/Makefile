@@ -30,5 +30,5 @@ askparams.o: askparams.c Makefile
 	$(CC) -c $(CFLAGS) $*.c
 
 clean:
-	$(RM) $(OBJS)
+	$(RM) *.o
 	$(RM) $(TGTS)
