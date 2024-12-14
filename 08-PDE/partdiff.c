@@ -314,125 +314,116 @@ static
 void
 calculateJacobiMPI(struct calculation_arguments const* arguments, struct calculation_results* results, struct options const* options, struct mpi_parameters* parameters)
 {
-	int i, j;           /* local variables for loops */
-	int m1, m2;         /* used as indices for old and new matrices */
-	double star;        /* four times center value minus 4 neigh.b values */
-	double residuum;    /* residuum of current iteration */
-	double maxResiduum; /* maximum residuum value of a slave in iteration */
+    int i, j;           /* local variables for loops */
+    int m1, m2;         /* used as indices for old and new matrices */
+    double star;        /* four times center value minus 4 neigh.b values */
+    double residuum;    /* residuum of current iteration */
+    double maxResiduum; /* maximum residuum value of a slave in iteration */
 
-	int const N_r = parameters->N_r; /* NEW */
-	int const N = arguments->N;
-	double const h = arguments->h;
+    int const N_r = parameters->N_r; /* NEW */
+    int const N = arguments->N;
+    double const h = arguments->h;
 
-	double pih = 0.0;
-	double fpisin = 0.0;
+    double pih = 0.0;
+    double fpisin = 0.0;
 
-	int rank = parameters->world_rank; /* NEW */
-	int size = parameters->world_size; /* NEW */
+    int rank = parameters->world_rank; /* NEW */
+    int size = parameters->world_size; /* NEW */
 
-	int term_iteration = options->term_iteration;
+    int term_iteration = options->term_iteration;
 
-	/* initialize m1 and m2 depending on Jacobi NEW */
-	m1 = 0;
-	m2 = 1;
+    /* initialize m1 and m2 depending on Jacobi NEW */
+    m1 = 0;
+    m2 = 1;
 
-	if (options->inf_func == FUNC_FPISIN)
-	{
-		pih = PI * h;
-		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
-	}
+    if (options->inf_func == FUNC_FPISIN)
+    {
+        pih = PI * h;
+        fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+    }
 
-	while (term_iteration > 0)
-	{
-		double** Matrix_Out = arguments->Matrix[m1];
-		double** Matrix_In  = arguments->Matrix[m2];
+    while (term_iteration > 0)
+    {
+        double** Matrix_Out = arguments->Matrix[m1];
+        double** Matrix_In  = arguments->Matrix[m2];
 
-		maxResiduum = 0;
+        maxResiduum = 0;
 
-		/* over all rows */
-		for (i = 1; i < N_r + 1; i++)
-		{
-			double fpisin_i = 0.0;
+        /* over all rows */
+        for (i = 1; i < N_r + 1; i++)
+        {
+            double fpisin_i = 0.0;
 
-			if (options->inf_func == FUNC_FPISIN)
-			{
-				fpisin_i = fpisin * sin(pih * (double)i);
-			}
+            if (options->inf_func == FUNC_FPISIN)
+            {
+                fpisin_i = fpisin * sin(pih * (double)i);
+            }
 
-			/* over all columns */
-			for (j = 1; j < N; j++)
-			{
-				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+            /* over all columns */
+            for (j = 1; j < N; j++)
+            {
+                star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
-				if (options->inf_func == FUNC_FPISIN)
-				{
-					star += fpisin_i * sin(pih * (double)j);
-				}
+                if (options->inf_func == FUNC_FPISIN)
+                {
+                    star += fpisin_i * sin(pih * (double)j);
+                }
 
-				if (options->termination == TERM_PREC || term_iteration == 1)
-				{
-					residuum = Matrix_In[i][j] - star;
-					residuum = (residuum < 0) ? -residuum : residuum;
-					maxResiduum = (residuum < maxResiduum) ? maxResiduum : residuum;
-				}
+                if (options->termination == TERM_PREC || term_iteration == 1)
+                {
+                    residuum = Matrix_In[i][j] - star;
+                    residuum = (residuum < 0) ? -residuum : residuum;
+                    maxResiduum = (residuum < maxResiduum) ? maxResiduum : residuum;
+                }
 
-				Matrix_Out[i][j] = star;
-			}
-		}
-		
-		if (rank == 0)
-		{
-			MPI_Send(&Matrix_Out[N_r][0], N, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD); /* NEW */
-		}
-		else 
-		{
-			MPI_Recv(&Matrix_Out[0][0], N, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); /* NEW */
-			if (rank < size - 1)
-			{
-				MPI_Send(&Matrix_Out[N_r][0], N, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD); /* NEW */
-			}
-		}
-		
-		if (rank == size - 1)
-		{
-			MPI_Send(&Matrix_Out[1][0], N, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD); /* NEW */
-		}
-		else 
-		{
-			MPI_Recv(&Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); /* NEW */
-			if (rank > 0)
-			{
-				MPI_Send(&Matrix_Out[1][0], N, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD); /* NEW */
-			}
-		}
+                Matrix_Out[i][j] = star;
+            }
+        }
 
-		double all_maxResiduum = 0;
-		MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		maxResiduum = all_maxResiduum;
+        /* Use MPI_Sendrecv to exchange boundary rows */
+        if (rank > 0)
+        {
+            MPI_Sendrecv(&Matrix_Out[1][0], N, MPI_DOUBLE, rank - 1, 0,
+                         &Matrix_Out[0][0], N, MPI_DOUBLE, rank - 1, 0,
+                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        if (rank < size - 1)
+        {
+            MPI_Sendrecv(&Matrix_Out[N_r][0], N, MPI_DOUBLE, rank + 1, 0,
+                         &Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, rank + 1, 0,
+                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
 
-		results->stat_iteration++;
-		results->stat_precision = maxResiduum;
+        if (options->termination == TERM_PREC || term_iteration == 1)
+        {
+            double all_maxResiduum = 0;
+            MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            maxResiduum = all_maxResiduum;
+        }
 
-		/* exchange m1 and m2 */
-		i = m1;
-		m1 = m2;
-		m2 = i;
+        results->stat_iteration++;
+        results->stat_precision = maxResiduum;
 
-		/* check for stopping calculation depending on termination method */
-		if (options->termination == TERM_PREC)
-		{
-			if (maxResiduum < options->term_precision)
-			{
-				term_iteration = 0;
-			}
-		}
-		else if (options->termination == TERM_ITER)
-		{
-			term_iteration--;
-		}
-	}
+        /* exchange m1 and m2 */
+        i = m1;
+        m1 = m2;
+        m2 = i;
 
-	results->m = m2;
+        /* check for stopping calculation depending on termination method */
+        if (options->termination == TERM_PREC)
+        {
+            if (maxResiduum < options->term_precision)
+            {
+                term_iteration = 0;
+            }
+        }
+        else if (options->termination == TERM_ITER)
+        {
+            term_iteration--;
+        }
+    }
+
+    results->m = m2;
 }
 
 /* ************************************************************************ */
