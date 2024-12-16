@@ -47,7 +47,7 @@ struct calculation_results
 };
 
 // NEW
-struct mpi_parameters
+struct mpi_parameters           //Eigene definierte Datentypen
 {
 	int world_size; // Anzahl der Prozesse
 	int world_rank; // Rang des Prozesses
@@ -162,7 +162,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 		{
 			for (j = 0; j <= N; j++)
 			{
-				Matrix[g][i][j] = 0.0;
+				Matrix[g][i][j] = 0.0;                                          //Matrix mit struct typen initialisiert
 			}
 		}
 	}
@@ -327,7 +327,7 @@ calculateJacobiMPI(struct calculation_arguments const* arguments, struct calcula
     double pih = 0.0;
     double fpisin = 0.0;
 
-    int rank = parameters->world_rank; /* NEW */
+    int rank = parameters->world_rank; /* NEW */        //rank und size mit struct
     int size = parameters->world_size; /* NEW */
 
     int term_iteration = options->term_iteration;
@@ -381,20 +381,20 @@ calculateJacobiMPI(struct calculation_arguments const* arguments, struct calcula
         }
 
     	int prev, next;           /* rank ids of the previous/next rank or MPI_PROC_NULL if it doesn't exists NEW */
-        prev = (rank > 0) ? rank - 1 : MPI_PROC_NULL;
-        next = (rank < size - 1) ? rank + 1 : MPI_PROC_NULL;
+        prev = (rank > 0) ? rank - 1 : MPI_PROC_NULL;               //kein Austausch in richtung null da erster prozess
+        next = (rank < size - 1) ? rank + 1 : MPI_PROC_NULL;            //kein austusch in richtig null, letzter prozess
 
-		/* Use MPI_Sendrecv to exchange boundary rows NEW */
-        MPI_Sendrecv(&Matrix_Out[1][0], N, MPI_DOUBLE, prev, 0,
-                     &Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, next, 0,
+		/* Use MPI_Sendrecv to exchange boundary rows NEW */   //2 mal Sendrecv um Treppeneffekt zu vermeiden, nur ein prozess gleichzeitig empfängt und sendet
+        MPI_Sendrecv(&Matrix_Out[1][0], N, MPI_DOUBLE, prev, 0,                 //sendrecv komminukation Randzeilen
+                     &Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, next, 0,           //nr+1 ,  1 ][ 0
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Sendrecv(&Matrix_Out[N_r][0], N, MPI_DOUBLE, next, 1,
-                     &Matrix_Out[0][0], N, MPI_DOUBLE, prev, 1,
+        MPI_Sendrecv(&Matrix_Out[N_r][0], N, MPI_DOUBLE, next, 1,               //nr ][ 0
+                     &Matrix_Out[0][0], N, MPI_DOUBLE, prev, 1,                 //0 0
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
         if (options->termination == TERM_PREC || term_iteration == 1)
         {
-            double all_maxResiduum = 0;
+            double all_maxResiduum = 0;  //berechnen golbales maxresiduum
             MPI_Allreduce(&maxResiduum, &all_maxResiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
             maxResiduum = all_maxResiduum;
         }
@@ -564,7 +564,7 @@ main (int argc, char** argv)
 	parameters.end_r = ((parameters.world_rank + 1)*(arguments.N - 1))/parameters.world_size + 1;
 	parameters.N_r = parameters.end_r - parameters.start_r;
 
-	if (options.method == METH_GAUSS_SEIDEL || parameters.world_size == 1) // sequenziell
+	if (options.method == METH_GAUSS_SEIDEL || parameters.world_size == 1) // sequenziell usprungsberechnung
 	{
 		if (parameters.world_rank == 0)
 		{
@@ -592,31 +592,31 @@ main (int argc, char** argv)
 	}
 	else
 	{
-		// parallel
+		// parallel AUFGABENLÖSUNG
 		allocateMatrices(&arguments, &parameters);
 		initMatrices(&arguments, &options, &parameters);
 
 		gettimeofday(&start_time, NULL);
 		// barrier for time calc
-		MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);        //syncro prozesse
 
-		calculateJacobiMPI(&arguments, &results, &options, &parameters);
+		calculateJacobiMPI(&arguments, &results, &options, &parameters); //Jacobi berechnung, jede einzelne zeile ein prozess
 
 		MPI_Barrier(MPI_COMM_WORLD);
 		gettimeofday(&comp_time, NULL);
 
-		// total_memory ist Summe der einzelnen memories
+		// total_memory ist Summe der einzelnen memories, Speicherverbrauch
 		double memory_r = (arguments.N + 1) * (parameters.N_r + 2) * sizeof(double) * arguments.num_matrices / 1024.0 / 1024.0;
 		double total_memory;
-		MPI_Allreduce(&memory_r, &total_memory, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce(&memory_r, &total_memory, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); //Reduktion aller lokalen speocherwerte. berechnung gesamtsumme memory
 
-		if (parameters.world_rank == 0)
+		if (parameters.world_rank == 0) //wenn rank 0 ist
 		{
-			displayStatistics(&arguments, &results, &options, total_memory);
-			displayMatrix(&arguments, &results, &options, &parameters);
-			MPI_Ssend(&signal, 1, MPI_INT, parameters.world_rank + 1, 0, MPI_COMM_WORLD);
+			displayStatistics(&arguments, &results, &options, total_memory);            //Berechnungsstatistiken
+			displayMatrix(&arguments, &results, &options, &parameters);                     //entgültige matrix auf prozess 0
+			MPI_Ssend(&signal, 1, MPI_INT, parameters.world_rank + 1, 0, MPI_COMM_WORLD);           //block bis empfänger bereit ist zu empfangen
 		}
-		else if (parameters.world_rank < parameters.world_size && parameters.world_rank > 0)
+		else if (parameters.world_rank < parameters.world_size && parameters.world_rank > 0)  //rank nicht 0
 		{
 			MPI_Recv(&signal, 1, MPI_INT, parameters.world_rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			displayMatrix(&arguments, &results, &options, &parameters);
@@ -626,8 +626,8 @@ main (int argc, char** argv)
 			}
 		}
 			MPI_Barrier(MPI_COMM_WORLD);
-			freeMatrices(&arguments);
+			freeMatrices(&arguments); //sync und speicherfreigabe
 	}
-	MPI_Finalize();
+	MPI_Finalize(); //Ende der ausführung, freigeben von prozessen
 	return 0;
 }
