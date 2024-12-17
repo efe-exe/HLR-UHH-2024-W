@@ -324,6 +324,8 @@ calculateJacobiMPI(struct calculation_arguments const* arguments, struct calcula
     int const N = arguments->N;
     double const h = arguments->h;
 
+    int const start_r = parameters->start_r; //fehler im code Unterschiedliche anzhal prozesse
+
     double pih = 0.0;
     double fpisin = 0.0;
 
@@ -356,7 +358,7 @@ calculateJacobiMPI(struct calculation_arguments const* arguments, struct calcula
 
             if (options->inf_func == FUNC_FPISIN)
             {
-                fpisin_i = fpisin * sin(pih * (double)i);
+                fpisin_i = fpisin * sin(pih * (double)(i+start_r)); // Fehler im Code, keine globale Varibale Unterschiedliche anzhal prozesse
             }
 
             /* over all columns */
@@ -386,11 +388,11 @@ calculateJacobiMPI(struct calculation_arguments const* arguments, struct calcula
 
 		/* Use MPI_Sendrecv to exchange boundary rows NEW */   //2 mal Sendrecv um Treppeneffekt zu vermeiden, nur ein prozess gleichzeitig empfängt und sendet
         MPI_Sendrecv(&Matrix_Out[1][0], N, MPI_DOUBLE, prev, 0,                 //sendrecv komminukation Randzeilen
-                     &Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, next, 0,           //nr+1 ,  1 ][ 0
+                     &Matrix_Out[N_r + 1][0], N, MPI_DOUBLE, next, 0,           //nr+1 ,  1 ][ 0 //prozesse laufen wegen sendrecv gleichzeitig
                      MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Sendrecv(&Matrix_Out[N_r][0], N, MPI_DOUBLE, next, 1,               //nr ][ 0
-                     &Matrix_Out[0][0], N, MPI_DOUBLE, prev, 1,                 //0 0
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Sendrecv(&Matrix_Out[N_r][0], N, MPI_DOUBLE, next, 1,               //nr ][ 0, NR bestimmt Überlappende zeilen die zum jeweiligen
+                     &Matrix_Out[0][0], N, MPI_DOUBLE, prev, 1,                 //0 0,  Prozess gesendet werden
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);                        //Nullprozess wartet immer am anfang, da null null kein deadlock, aber kostet zeit
 
         if (options->termination == TERM_PREC || term_iteration == 1)
         {
