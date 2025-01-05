@@ -99,7 +99,7 @@ int main (int argc, char** argv)
     {
         printf("Arguments error!\nPlease specify a valid buffer size.\n");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-        return EXIT_FAILURE
+        return EXIT_FAILURE;
     }
     pp = per_process(N, nprocs);
     oc = occupied_count(N, nprocs, rank);
