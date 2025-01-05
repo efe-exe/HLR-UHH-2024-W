@@ -507,16 +507,26 @@ main(int argc, char **argv) {
 
     // Signal for displaying matrix NEW
     int signal = 0;
+    int active = 1; // Boolean to track if the current process is active
 
     askParams(&options, argc, argv);
     initVariables(&arguments, &results, &options);
+
+    if ((uint64_t) parameters.world_size > arguments.N) {
+	active = (uint64_t) parameters.world_rank < arguments.N;
+	MPI_Comm_split(MPI_COMM_WORLD, active, parameters.world_rank, &parameters.world);
+	MPI_Comm_size(parameters.world, &parameters.world_size); // size of process NEW
+	MPI_Comm_rank(parameters.world, &parameters.world_rank); // rank of process NEW
+    }
+    if (!active) {
+	MPI_Finalize();
+	return 0;
+    }
 
 
     parameters.start_r = (parameters.world_rank * (arguments.N - 1)) / parameters.world_size + 1;
     parameters.end_r = ((parameters.world_rank + 1) * (arguments.N - 1)) / parameters.world_size + 1;
     parameters.N_r = parameters.end_r - parameters.start_r;
-    printf("[%d] (start_r=%ld, end_r=%ld, N_r=%ld, world_size=%d, N=%ld)", parameters.world_rank, parameters.start_r,
-	   parameters.end_r, parameters.N_r, parameters.world_size, arguments.N);
 
     if (options.method == METH_GAUSS_SEIDEL || parameters.world_size == 1) // sequenziell
     {
@@ -572,7 +582,7 @@ main(int argc, char **argv) {
 		MPI_Ssend(&signal, 1, MPI_INT, parameters.world_rank + 1, 0, parameters.world);
 	    }
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Barrier(parameters.world);
 	freeMatrices(&arguments);
     }
     MPI_Finalize();
