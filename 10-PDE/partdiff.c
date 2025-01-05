@@ -512,11 +512,11 @@ main(int argc, char **argv) {
     askParams(&options, argc, argv);
     initVariables(&arguments, &results, &options);
 
-    if ((uint64_t) parameters.world_size > arguments.N) {
-	active = (uint64_t) parameters.world_rank < arguments.N;
+    if ((uint64_t) parameters.world_size > arguments.N - 1) {
+	active = (uint64_t) parameters.world_rank < arguments.N - 1;
 	MPI_Comm_split(MPI_COMM_WORLD, active, parameters.world_rank, &parameters.world);
-	MPI_Comm_size(parameters.world, &parameters.world_size); // size of process NEW
-	MPI_Comm_rank(parameters.world, &parameters.world_rank); // rank of process NEW
+	MPI_Comm_size(parameters.world, &parameters.world_size);
+	MPI_Comm_rank(parameters.world, &parameters.world_rank);
     }
     if (!active) {
 	MPI_Finalize();
