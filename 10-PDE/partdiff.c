@@ -26,8 +26,7 @@
 #include <math.h>
 #include <malloc.h>
 #include <sys/time.h>
-//#include <mpi.h> // NEW
-#include </usr/lib/x86_64-linux-gnu/openmpi/include/mpi.h>
+#include <mpi.h> // NEW
 
 #include "partdiff.h"
 
