@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#SBATCH --time=02:00:00
+#SBATCH --partition=west
+#SBATCH --nodes=4 --tasks-per-node=6
+#SBATCH --error=WEAK_SCALING_GS_4_24_1960.err --output=WEAK_SCALING_GS_4_24_1960.out
+
+mpiexec -n 24 ./partdiff-par 1 1 1960 2 2 1000
+mpiexec -n 24 ./partdiff-par 1 1 1960 2 2 1000
+mpiexec -n 24 ./partdiff-par 1 1 1960 2 2 1000

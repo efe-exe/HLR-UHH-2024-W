@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#SBATCH --time=02:00:00
+#SBATCH --partition=west
+#SBATCH --nodes=8 --tasks-per-node=8
+#SBATCH --error=WEAK_SCALING_GS_8_64_3200.err --output=WEAK_SCALING_GS_8_64_3200.out
+
+mpiexec -n 64 ./partdiff-par 1 1 3200 2 2 1000
+mpiexec -n 64 ./partdiff-par 1 1 3200 2 2 1000
+mpiexec -n 64 ./partdiff-par 1 1 3200 2 2 1000

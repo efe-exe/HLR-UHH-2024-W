@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#SBATCH --time=02:00:00
+#SBATCH --partition=west
+#SBATCH --nodes=2 --tasks-per-node=2
+#SBATCH --error=WEAK_SCALING_JA_2_4_800.err --output=WEAK_SCALING_JA_2_4_800.out
+
+mpiexec -n 4 ./partdiff-par 1 2 800 2 2 1000
+mpiexec -n 4 ./partdiff-par 1 2 800 2 2 1000
+mpiexec -n 4 ./partdiff-par 1 2 800 2 2 1000

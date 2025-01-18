@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#SBATCH --time=02:00:00
+#SBATCH --partition=west
+#SBATCH --nodes=8 --tasks-per-node=12
+#SBATCH --error=STRONG_SCALING_JA_8_96_1920.err --output=STRONG_SCALING_JA_8_96_1920.out
+
+mpiexec -n 96 ./partdiff-par 1 2 1920 2 2 500
+mpiexec -n 96 ./partdiff-par 1 2 1920 2 2 500
+mpiexec -n 96 ./partdiff-par 1 2 1920 2 2 500
