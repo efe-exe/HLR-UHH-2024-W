@@ -1,0 +1,13 @@
+slurmstepd-west7: error: *** JOB 180678 ON west7 CANCELLED AT 2025-01-18T20:24:12 DUE TO TIME LIMIT ***
+slurmstepd-west7: error: *** STEP 180678.0 ON west7 CANCELLED AT 2025-01-18T20:24:12 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: got SIGCONT
+srun: forcing job termination
+[proxy:0:0@west7] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:0@west7] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@west7] main (pm/pmiserv/pmip.c:232): demux engine error waiting for event
+srun: error: west7: task 0: Exited with exit code 7
+[mpiexec@west7] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:73): one of the processes terminated badly; aborting
+[mpiexec@west7] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:21): launcher returned error waiting for completion
+[mpiexec@west7] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:179): launcher returned error waiting for completion
+[mpiexec@west7] main (ui/mpich/mpiexec.c:325): process manager error waiting for completion

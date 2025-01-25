@@ -1,0 +1,12 @@
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-west3: error: *** JOB 180658 ON west3 CANCELLED AT 2025-01-18T14:21:42 DUE TO TIME LIMIT ***
+slurmstepd-west3: error: *** STEP 180658.0 ON west3 CANCELLED AT 2025-01-18T14:21:42 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+[proxy:0:0@west3] HYDU_sock_write (utils/sock/sock.c:254): write error (Broken pipe)
+[proxy:0:0@west3] main (pm/pmiserv/pmip.c:248): unable to return exit status upstream
+srun: error: west3: task 0: Exited with exit code 5
+[mpiexec@west3] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:73): one of the processes terminated badly; aborting
+[mpiexec@west3] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:21): launcher returned error waiting for completion
+[mpiexec@west3] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:179): launcher returned error waiting for completion
+[mpiexec@west3] main (ui/mpich/mpiexec.c:325): process manager error waiting for completion

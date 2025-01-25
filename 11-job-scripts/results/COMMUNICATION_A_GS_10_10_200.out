@@ -1,0 +1,111 @@
+============================================================
+Program for calculation of partial differential equations.  
+============================================================
+(c) Dr. Thomas Ludwig, TU München.
+    Thomas A. Zochler, TU München.
+    Andreas C. Schmidt, TU München.
+============================================================
+
+[9] Sending stop from 19905 to process 0 (tag=19914)
+[9] Sending stop from 19906 to process 0 (tag=19915)
+[9] Sending stop from 19907 to process 0 (tag=19916)
+[9] Sending stop from 19908 to process 0 (tag=19917)
+[9] Sending stop from 19909 to process 0 (tag=19918)
+[9] Sending stop from 19910 to process 0 (tag=19919)
+[9] Sending stop from 19911 to process 0 (tag=19920)
+[9] Sending stop from 19912 to process 0 (tag=19921)
+[9] Sending stop from 19913 to process 0 (tag=19922)
+[9] Sending stop from 19914 to process 0 (tag=19923)
+Berechnungszeit:    59.340344 s 
+Speicherbedarf:     19.972557 MiB
+Berechnungsmethode: Gauß-Seidel
+Interlines:         200
+Stoerfunktion:      f(x,y) = 0
+Terminierung:       Hinreichende Genaugkeit
+Anzahl Iterationen: 19915
+Norm des Fehlers:   3.348737e-05
+
+Matrix:
+ 2.0000 1.8750 1.7500 1.6250 1.5000 1.3750 1.2500 1.1250 1.0000
+ 1.8750 0.5339 0.2791 0.2526 0.2331 0.2137 0.1973 0.2853 0.8750
+ 1.7500 0.2791 0.0160 0.0075 0.0069 0.0063 0.0089 0.1195 0.7500
+ 1.6250 0.2526 0.0075 0.0001 0.0000 0.0000 0.0027 0.0959 0.6250
+ 1.5000 0.2331 0.0069 0.0000 0.0000 0.0000 0.0021 0.0767 0.5000
+ 1.3750 0.2137 0.0063 0.0000 0.0000 0.0000 0.0016 0.0576 0.3750
+ 1.2500 0.1973 0.0089 0.0027 0.0021 0.0016 0.0021 0.0389 0.2500
+ 1.1250 0.2853 0.1195 0.0959 0.0767 0.0576 0.0389 0.0385 0.1250
+ 1.0000 0.8750 0.7500 0.6250 0.5000 0.3750 0.2500 0.1250 0.0000
+============================================================
+Program for calculation of partial differential equations.  
+============================================================
+(c) Dr. Thomas Ludwig, TU München.
+    Thomas A. Zochler, TU München.
+    Andreas C. Schmidt, TU München.
+============================================================
+
+[9] Sending stop from 19905 to process 0 (tag=19914)
+[9] Sending stop from 19906 to process 0 (tag=19915)
+[9] Sending stop from 19907 to process 0 (tag=19916)
+[9] Sending stop from 19908 to process 0 (tag=19917)
+[9] Sending stop from 19909 to process 0 (tag=19918)
+[9] Sending stop from 19910 to process 0 (tag=19919)
+[9] Sending stop from 19911 to process 0 (tag=19920)
+[9] Sending stop from 19912 to process 0 (tag=19921)
+[9] Sending stop from 19913 to process 0 (tag=19922)
+[9] Sending stop from 19914 to process 0 (tag=19923)
+Berechnungszeit:    59.324616 s 
+Speicherbedarf:     19.972557 MiB
+Berechnungsmethode: Gauß-Seidel
+Interlines:         200
+Stoerfunktion:      f(x,y) = 0
+Terminierung:       Hinreichende Genaugkeit
+Anzahl Iterationen: 19915
+Norm des Fehlers:   3.348737e-05
+
+Matrix:
+ 2.0000 1.8750 1.7500 1.6250 1.5000 1.3750 1.2500 1.1250 1.0000
+ 1.8750 0.5339 0.2791 0.2526 0.2331 0.2137 0.1973 0.2853 0.8750
+ 1.7500 0.2791 0.0160 0.0075 0.0069 0.0063 0.0089 0.1195 0.7500
+ 1.6250 0.2526 0.0075 0.0001 0.0000 0.0000 0.0027 0.0959 0.6250
+ 1.5000 0.2331 0.0069 0.0000 0.0000 0.0000 0.0021 0.0767 0.5000
+ 1.3750 0.2137 0.0063 0.0000 0.0000 0.0000 0.0016 0.0576 0.3750
+ 1.2500 0.1973 0.0089 0.0027 0.0021 0.0016 0.0021 0.0389 0.2500
+ 1.1250 0.2853 0.1195 0.0959 0.0767 0.0576 0.0389 0.0385 0.1250
+ 1.0000 0.8750 0.7500 0.6250 0.5000 0.3750 0.2500 0.1250 0.0000
+============================================================
+Program for calculation of partial differential equations.  
+============================================================
+(c) Dr. Thomas Ludwig, TU München.
+    Thomas A. Zochler, TU München.
+    Andreas C. Schmidt, TU München.
+============================================================
+
+[9] Sending stop from 19905 to process 0 (tag=19914)
+[9] Sending stop from 19906 to process 0 (tag=19915)
+[9] Sending stop from 19907 to process 0 (tag=19916)
+[9] Sending stop from 19908 to process 0 (tag=19917)
+[9] Sending stop from 19909 to process 0 (tag=19918)
+[9] Sending stop from 19910 to process 0 (tag=19919)
+[9] Sending stop from 19911 to process 0 (tag=19920)
+[9] Sending stop from 19912 to process 0 (tag=19921)
+[9] Sending stop from 19913 to process 0 (tag=19922)
+[9] Sending stop from 19914 to process 0 (tag=19923)
+Berechnungszeit:    59.415048 s 
+Speicherbedarf:     19.972557 MiB
+Berechnungsmethode: Gauß-Seidel
+Interlines:         200
+Stoerfunktion:      f(x,y) = 0
+Terminierung:       Hinreichende Genaugkeit
+Anzahl Iterationen: 19915
+Norm des Fehlers:   3.348737e-05
+
+Matrix:
+ 2.0000 1.8750 1.7500 1.6250 1.5000 1.3750 1.2500 1.1250 1.0000
+ 1.8750 0.5339 0.2791 0.2526 0.2331 0.2137 0.1973 0.2853 0.8750
+ 1.7500 0.2791 0.0160 0.0075 0.0069 0.0063 0.0089 0.1195 0.7500
+ 1.6250 0.2526 0.0075 0.0001 0.0000 0.0000 0.0027 0.0959 0.6250
+ 1.5000 0.2331 0.0069 0.0000 0.0000 0.0000 0.0021 0.0767 0.5000
+ 1.3750 0.2137 0.0063 0.0000 0.0000 0.0000 0.0016 0.0576 0.3750
+ 1.2500 0.1973 0.0089 0.0027 0.0021 0.0016 0.0021 0.0389 0.2500
+ 1.1250 0.2853 0.1195 0.0959 0.0767 0.0576 0.0389 0.0385 0.1250
+ 1.0000 0.8750 0.7500 0.6250 0.5000 0.3750 0.2500 0.1250 0.0000

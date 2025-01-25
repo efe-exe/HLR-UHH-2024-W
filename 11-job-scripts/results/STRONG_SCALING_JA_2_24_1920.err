@@ -1,0 +1,5 @@
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-west1: error: *** STEP 180664.0 ON west1 CANCELLED AT 2025-01-18T14:24:12 DUE TO TIME LIMIT ***
+slurmstepd-west1: error: *** JOB 180664 ON west1 CANCELLED AT 2025-01-18T14:24:12 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination

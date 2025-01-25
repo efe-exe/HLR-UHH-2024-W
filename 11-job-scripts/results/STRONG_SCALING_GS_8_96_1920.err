@@ -1,0 +1,8 @@
+slurmstepd-west1: error: *** STEP 180660.0 ON west1 CANCELLED AT 2025-01-19T09:31:13 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-west1: error: *** JOB 180660 ON west1 CANCELLED AT 2025-01-19T09:31:13 DUE TO TIME LIMIT ***
+[proxy:0:0@west1] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:0@west1] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@west1] main (pm/pmiserv/pmip.c:169): demux engine error waiting for event
+srun: got SIGCONT
+srun: error: west1: task 0: Exited with exit code 7

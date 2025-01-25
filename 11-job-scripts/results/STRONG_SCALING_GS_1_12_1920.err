@@ -1,0 +1,5 @@
+slurmstepd-west7: error: *** STEP 180657.0 ON west7 CANCELLED AT 2025-01-18T14:06:42 DUE TO TIME LIMIT ***
+slurmstepd-west7: error: *** JOB 180657 ON west7 CANCELLED AT 2025-01-18T14:06:42 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: got SIGCONT
+srun: forcing job termination

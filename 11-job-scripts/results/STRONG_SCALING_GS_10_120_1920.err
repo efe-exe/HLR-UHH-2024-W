@@ -1,0 +1,27 @@
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-west1: error: *** JOB 180655 ON west1 CANCELLED AT 2025-01-19T13:41:43 DUE TO TIME LIMIT ***
+slurmstepd-west1: error: *** STEP 180655.0 ON west1 CANCELLED AT 2025-01-19T13:41:43 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+[proxy:0:8@west9] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:8@west9] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:8@west9] main (pm/pmiserv/pmip.c:232): demux engine error waiting for event
+[proxy:0:6@west7] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:6@west7] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:6@west7] main (pm/pmiserv/pmip.c:232): demux engine error waiting for event
+[proxy:0:0@west1] HYDU_sock_write (utils/sock/sock.c:254): write error (Broken pipe)
+[proxy:0:0@west1] main (pm/pmiserv/pmip.c:248): unable to return exit status upstream
+[proxy:0:1@west2] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:1@west2] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@west2] main (pm/pmiserv/pmip.c:232): demux engine error waiting for event
+[proxy:0:7@west8] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:899): assert (!closed) failed
+[proxy:0:7@west8] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:7@west8] main (pm/pmiserv/pmip.c:232): demux engine error waiting for event
+srun: forcing job termination
+[mpiexec@west1] HYDU_sock_write (utils/sock/sock.c:254): write error (Bad file descriptor)
+[mpiexec@west1] HYD_pmcd_pmiserv_send_signal (pm/pmiserv/pmiserv_cb.c:176): unable to write data to proxy
+[mpiexec@west1] ui_cmd_cb (pm/pmiserv/pmiserv_pmci.c:42): unable to send signal downstream
+[mpiexec@west1] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[mpiexec@west1] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:59): error waiting for event
+[mpiexec@west1] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:21): launcher returned error waiting for completion
+[mpiexec@west1] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:179): launcher returned error waiting for completion
+[mpiexec@west1] main (ui/mpich/mpiexec.c:325): process manager error waiting for completion

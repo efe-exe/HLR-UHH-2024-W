@@ -1,0 +1,8 @@
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-west5: error: *** JOB 180665 ON west5 CANCELLED AT 2025-01-18T23:55:12 DUE TO TIME LIMIT ***
+slurmstepd-west5: error: *** STEP 180665.0 ON west5 CANCELLED AT 2025-01-18T23:55:12 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+[proxy:0:0@west5] HYDU_sock_write (utils/sock/sock.c:254): write error (Broken pipe)
+[proxy:0:0@west5] main (pm/pmiserv/pmip.c:248): unable to return exit status upstream
+srun: error: west5: task 0: Exited with exit code 5
